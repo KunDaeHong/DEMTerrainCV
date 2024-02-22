@@ -7,6 +7,13 @@ public struct TileInfo : IEquatable<TileInfo>
     public int lon;
     public int zoom;
 
+    public TileInfo(int lat, int lon, int zoom)
+    {
+        this.lat = lat;
+        this.lon = lon;
+        this.zoom = zoom;
+    }
+
     public bool Equals(TileInfo other)
     {
         return lat == other.lat && lon == other.lon && zoom == other.zoom;

@@ -1,11 +1,9 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 
 using GISTech.GISTerrainLoader;
-using BitMiracle.LibTiff.Classic;
 
 using UnityEngine;
 
@@ -50,9 +48,28 @@ public class MapUtils
     }
 
     //This function returns every 19 level tiles image in tile number
-    public static void getTilesInTile()
+    public static List<TileInfo> getTilesInTile(int lon, int lat, int zoom)
     {
+        if (zoom <= 19)
+        {
+            throw new Exception("The maximum size for Google Maps stellite images is 19 level.");
+        }
 
+        int zoomDiff = 19 - zoom;
+        int zoomMultiples = 1 << zoomDiff;
+
+        int nLon = lon * zoomMultiples;
+        int nLat = lat * zoomMultiples;
+
+        List<TileInfo> tileList = new List<TileInfo>();
+
+        for (int i = 0; i < zoomMultiples; i++)
+        {
+            TileInfo newTile = new TileInfo(nLat + i, nLon + i, zoom);
+            tileList.Add(newTile);
+        }
+
+        return tileList;
     }
 
     // This function returns the NW-Corner of the tile.
