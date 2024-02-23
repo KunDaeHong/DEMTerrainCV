@@ -48,14 +48,19 @@ public class MapUtils
     }
 
     //This function returns every 19 level tiles image in tile number
-    public static List<TileInfo> getTilesInTile(int lon, int lat, int zoom)
+    //
+    public static List<TileInfo> getTilesInTile(TileInfo tileInfo)
     {
-        if (zoom <= 19)
+        int lon = tileInfo.lon;
+        int lat = tileInfo.lat;
+        int zoom = tileInfo.zoom;
+
+        if (zoom >= 15)
         {
-            throw new Exception("The maximum size for Google Maps stellite images is 19 level.");
+            throw new Exception("The maximum size for Google Maps stellite images is 19 level. But We using 15 level maps.");
         }
 
-        int zoomDiff = 19 - zoom;
+        int zoomDiff = 15 - zoom;
         int zoomMultiples = 1 << zoomDiff;
 
         int nLon = lon * zoomMultiples;
@@ -63,10 +68,13 @@ public class MapUtils
 
         List<TileInfo> tileList = new List<TileInfo>();
 
-        for (int i = 0; i < zoomMultiples; i++)
+        for (int y = 0; y < zoomMultiples; y++)
         {
-            TileInfo newTile = new TileInfo(nLat + i, nLon + i, zoom);
-            tileList.Add(newTile);
+            for (int x = 0; x < zoomMultiples; x++)
+            {
+                TileInfo newTile = new TileInfo(nLat + y, nLon + x, 15);
+                tileList.Add(newTile);
+            }
         }
 
         return tileList;

@@ -1,4 +1,7 @@
 using System;
+
+using UnityEngine;
+
 using Newtonsoft.Json;
 
 public struct TileInfo : IEquatable<TileInfo>
@@ -17,6 +20,18 @@ public struct TileInfo : IEquatable<TileInfo>
     public bool Equals(TileInfo other)
     {
         return lat == other.lat && lon == other.lon && zoom == other.zoom;
+    }
+}
+
+public struct TileSprite
+{
+    public TileInfo tileInfo;
+    public Sprite tileImage;
+
+    public TileSprite(TileInfo tileInfo, Sprite tileImage)
+    {
+        this.tileInfo = tileInfo;
+        this.tileImage = tileImage;
     }
 }
 

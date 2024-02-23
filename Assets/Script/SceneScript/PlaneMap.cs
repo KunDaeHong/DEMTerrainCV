@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.IO;
 
 using UnityEngine;
 using UnityEngine.UI;
@@ -70,7 +71,8 @@ public class PlaneMap : MonoBehaviour
 
             if (!isLoadingMap)
             {
-                StartCoroutine(loadMap(demVOs));
+                //StartCoroutine(loadMap(demVOs));
+                StartCoroutine(loadMapHighQuality(demVOs));
             }
         }
     }
@@ -122,6 +124,70 @@ public class PlaneMap : MonoBehaviour
         yield return new WaitUntil(() => task.IsCompleted);
     }
 
+    //맵을 로딩하는 함수
+    IEnumerator loadMap(MapDemVO[] mapDemVOs)
+    {
+        isLoadingMap = true;
+        GameObject.Find("LoadingTitleBar").GetComponent<Image>().enabled = true;
+        GameObject.Find("LoadingTitle").GetComponent<Text>().enabled = true;
+        try
+        {
+            List<Wgs84Info> wgs84Coords = new List<Wgs84Info> {
+                mapDemVOs.First().topL,
+                mapDemVOs.First().topR,
+                mapDemVOs.First().bottomL,
+                mapDemVOs.First().bottomR
+            };
+
+            TileInfo mapTile = MapUtils.getTileListFromDEM(wgs84Coords[0], wgs84Coords[1], wgs84Coords[2], wgs84Coords[3]);
+            yield return getGoogleMapSatellite(mapTile);
+
+            // plane을 지도 이미지로 변경
+            Material planeMapMaterial = new Material(Shader.Find("Standard"));
+            planeMapMaterial.mainTexture = mapSprite.texture;
+            Renderer planeRenderer = GetComponent<Renderer>();
+            planeRenderer.material = planeMapMaterial;
+            StartCoroutine(makeDEMTerrain(mapDemVOs));
+        }
+        finally
+        {
+            isLoadingMap = false;
+        }
+    }
+
+    //맵 로딩(고화질 Beta 참고: Terrain을 생성하지 않습니다.)
+    IEnumerator loadMapHighQuality(MapDemVO[] mapDemVOs)
+    {
+        isLoadingMap = true;
+        try
+        {
+            List<Wgs84Info> wgs84Coords = new List<Wgs84Info> {
+                mapDemVOs.First().topL,
+                mapDemVOs.First().topR,
+                mapDemVOs.First().bottomL,
+                mapDemVOs.First().bottomR
+            };
+
+            TileInfo mapTile = MapUtils.getTileListFromDEM(wgs84Coords[0], wgs84Coords[1], wgs84Coords[2], wgs84Coords[3]);
+            List<TileInfo> tileList = MapUtils.getTilesInTile(mapTile);
+            int zoomDiff = 15 - mapTile.zoom;
+            int zoomMultiples = 1 << zoomDiff;
+
+            yield return getGoogleMapSatellite19(tileList, zoomMultiples);
+
+            // plane을 지도 이미지로 변경
+            Material planeMapMaterial = new Material(Shader.Find("Standard"));
+            planeMapMaterial.mainTexture = mapSprite.texture;
+            Renderer planeRenderer = GetComponent<Renderer>();
+            planeRenderer.material = planeMapMaterial;
+            //StartCoroutine(makeDEMTerrain(mapDemVOs));
+        }
+        finally
+        {
+            isLoadingMap = false;
+        }
+    }
+
     // getGoogleMapSession
     // 
     // 구글맵을 사용하기 위해 미리 세션키를 발급받는 함수입니다.
@@ -157,7 +223,7 @@ public class PlaneMap : MonoBehaviour
         var tileQueryDict = new Dictionary<string, string> {
                 {"session", Const.Shared.Google_Session_key},
                 {"key", Const.Google_API}
-            };
+        };
 
         string query = NetworkVO.queryParameterMaker(tileQueryDict);
         string api_url = $"{APIConst.google_map_api}/{tileInfo.zoom}/{tileInfo.lon}/{tileInfo.lat}?{query}";
@@ -176,35 +242,58 @@ public class PlaneMap : MonoBehaviour
         yield return "";
     }
 
-    //맵을 로딩하는 함수
-    IEnumerator loadMap(MapDemVO[] mapDemVOs)
+    // getGoogleMapSatellite19
+    // 
+    // 구글맵 19레벨 위성지도를 한개의 Sprite로 저장하는 함수입니다. 
+    // List<TileInfo> tileList : 구글맵지도 api는 타일을 사용하여 호출합니다.
+    // int tileXWay : x축의 타일 최대 갯수입니다.
+
+    private IEnumerator getGoogleMapSatellite19(List<TileInfo> tileList, int tileXWay)
     {
-        isLoadingMap = true;
-        GameObject.Find("LoadingTitleBar").GetComponent<Image>().enabled = true;
-        GameObject.Find("LoadingTitle").GetComponent<Text>().enabled = true;
-        try
+        if (Convert.ToInt64(DateTimeOffset.UtcNow.ToUnixTimeSeconds()) > Const.Shared.g_sessionExpired + 30)
         {
-            List<Wgs84Info> wgs84Coords = new List<Wgs84Info> {
-                mapDemVOs.First().topL,
-                mapDemVOs.First().topR,
-                mapDemVOs.First().bottomL,
-                mapDemVOs.First().bottomR
-            };
-
-            TileInfo mapTile = MapUtils.getTileListFromDEM(wgs84Coords[0], wgs84Coords[1], wgs84Coords[2], wgs84Coords[3]);
-            yield return getGoogleMapSatellite(mapTile);
-
-            // plane을 지도 이미지로 변경
-            Material planeMapMaterial = new Material(Shader.Find("Standard"));
-            planeMapMaterial.mainTexture = mapSprite.texture;
-            Renderer planeRenderer = GetComponent<Renderer>();
-            planeRenderer.material = planeMapMaterial;
-            StartCoroutine(makeDEMTerrain(mapDemVOs));
+            Task getSessionKeyTask = getGoogleMapSession();
+            yield return new WaitUntil(() => getSessionKeyTask.IsCompleted);
         }
-        finally
+
+        var tileQueryDict = new Dictionary<string, string> {
+                {"session", Const.Shared.Google_Session_key},
+                {"key", Const.Google_API}
+        };
+        string query = NetworkVO.queryParameterMaker(tileQueryDict);
+        List<Sprite> sprites = new List<Sprite>();
+
+        foreach (var tile in tileList)
         {
-            isLoadingMap = false;
+            string api_url = $"{APIConst.google_map_api}/{tile.zoom}/{tile.lon}/{tile.lat}?{query}";
+            byte[] receivedByteArr = new byte[0];
+
+            Task<byte[]> task = NetworkVO.reqAPI<byte[]>(api_url, NetworkEnum.GET);
+            yield return new WaitUntil(() => task.IsCompleted);
+
+
+            receivedByteArr = task.Result;
+            Texture2D bmp = new Texture2D(8, 8);
+            Vector2 pivot = new Vector2(0.5f, 0.5f);
+
+            bmp.LoadImage(receivedByteArr);
+            Rect tRect = new Rect(0, 0, bmp.width, bmp.height);
+            sprites.Add(Sprite.Create(bmp, tRect, pivot));
         }
+
+        Sprite mergedSprite = mergeSprite(sprites, tileXWay);
+
+        string directoryPath = @Application.streamingAssetsPath + "/tileImage/";
+        if (Directory.Exists(directoryPath) == false)
+        {
+            Directory.CreateDirectory(directoryPath);
+        }
+
+        var pngData = mergedSprite.texture.EncodeToJPG();
+        var path = @Application.streamingAssetsPath + "/tileImage/" + "background" + ".jpg";
+        File.WriteAllBytes(path, pngData);
+
+        mapSprite = mergedSprite;
     }
 
     IEnumerator makeDEMTerrain(MapDemVO[] mapDemVOs)
@@ -297,6 +386,51 @@ public class PlaneMap : MonoBehaviour
         Sprite croppedSprite = Sprite.Create(croppedTexture, new Rect(0, 0, (int)rect.width, (int)rect.height), new Vector2(0.5f, 0.5f));
 
         return croppedSprite;
+    }
+
+    //Makes one sprite from multiple sprite.
+    Sprite mergeSprite(List<Sprite> sprites, int tileXWay)
+    {
+        int xSize = tileXWay * 256;
+        Texture2D mapTexture = new Texture2D(xSize + 1, xSize + 1);
+        Vector2 pivot = new Vector2(0.5f, 0.5f);
+        Vector2 textureSize = new Vector2(0, 0);
+        mapTexture.Apply(true, false);
+
+        foreach (var mapSprite in sprites)
+        {
+            Texture2D mapSpriteTexture = mapSprite.texture;
+            mapSpriteTexture.Apply(true, false);
+            Rect mapRect = mapSprite.rect;
+
+            mapTexture.SetPixels(
+                (int)textureSize.x,
+                (int)textureSize.y,
+                (int)mapRect.width,
+                (int)mapRect.height,
+                mapSpriteTexture.GetPixels());
+
+            textureSize.x += mapRect.width;
+
+            if (xSize <= textureSize.x)
+            {
+                textureSize.x = 0;
+                textureSize.y += mapRect.height;
+            }
+
+            // string directoryPath = @Application.streamingAssetsPath + "/tileImage/";
+            // if (Directory.Exists(directoryPath) == false)
+            // {
+            //     Directory.CreateDirectory(directoryPath);
+            // }
+
+            // var pngData = mapSpriteTexture.EncodeToJPG();
+            // var path = @Application.streamingAssetsPath + "/tileImage/" + $"{textureSize.x}R{textureSize.y}" + ".jpg";
+            // File.WriteAllBytes(path, pngData);
+        }
+
+        Rect tRect = new Rect(0, 0, mapTexture.width, mapTexture.height);
+        return Sprite.Create(mapTexture, tRect, pivot);
     }
 
 }
