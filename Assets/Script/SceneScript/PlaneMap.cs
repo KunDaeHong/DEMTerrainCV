@@ -173,7 +173,7 @@ public class PlaneMap : MonoBehaviour
             int zoomDiff = 15 - mapTile.zoom;
             int zoomMultiples = 1 << zoomDiff;
 
-            yield return getGoogleMapSatellite19(tileList, zoomMultiples);
+            yield return getGoogleMapSatellite15(tileList, zoomMultiples);
 
             // plane을 지도 이미지로 변경
             Material planeMapMaterial = new Material(Shader.Find("Standard"));
@@ -244,11 +244,11 @@ public class PlaneMap : MonoBehaviour
 
     // getGoogleMapSatellite19
     // 
-    // 구글맵 19레벨 위성지도를 한개의 Sprite로 저장하는 함수입니다. 
+    // 구글맵 15레벨 위성지도를 한개의 Sprite로 저장하는 함수입니다. 
     // List<TileInfo> tileList : 구글맵지도 api는 타일을 사용하여 호출합니다.
     // int tileXWay : x축의 타일 최대 갯수입니다.
 
-    private IEnumerator getGoogleMapSatellite19(List<TileInfo> tileList, int tileXWay)
+    private IEnumerator getGoogleMapSatellite15(List<TileInfo> tileList, int tileXWay)
     {
         if (Convert.ToInt64(DateTimeOffset.UtcNow.ToUnixTimeSeconds()) > Const.Shared.g_sessionExpired + 30)
         {
@@ -271,6 +271,7 @@ public class PlaneMap : MonoBehaviour
             Task<byte[]> task = NetworkVO.reqAPI<byte[]>(api_url, NetworkEnum.GET);
             yield return new WaitUntil(() => task.IsCompleted);
 
+            Debug.Log($"{APIConst.google_map_api}/{tile.zoom}/{tile.lon}/{tile.lat}?{query}");
 
             receivedByteArr = task.Result;
             Texture2D bmp = new Texture2D(8, 8);
@@ -278,9 +279,9 @@ public class PlaneMap : MonoBehaviour
 
             bmp.LoadImage(receivedByteArr);
             Rect tRect = new Rect(0, 0, bmp.width, bmp.height);
+            //sprites.Add(Sprite.Create(bmp, tRect, pivot));
             sprites.Add(Sprite.Create(bmp, tRect, pivot));
         }
-
         Sprite mergedSprite = mergeSprite(sprites, tileXWay);
 
         string directoryPath = @Application.streamingAssetsPath + "/tileImage/";
@@ -392,41 +393,32 @@ public class PlaneMap : MonoBehaviour
     Sprite mergeSprite(List<Sprite> sprites, int tileXWay)
     {
         int xSize = tileXWay * 256;
-        Texture2D mapTexture = new Texture2D(xSize + 1, xSize + 1);
+        Texture2D mapTexture = new Texture2D(xSize, xSize);
         Vector2 pivot = new Vector2(0.5f, 0.5f);
-        Vector2 textureSize = new Vector2(0, 0);
-        mapTexture.Apply(true, false);
+        Vector2 textureSize = new Vector2(0, 2048f);
+
+        mapTexture.Apply(false, false);
 
         foreach (var mapSprite in sprites)
         {
             Texture2D mapSpriteTexture = mapSprite.texture;
-            mapSpriteTexture.Apply(true, false);
+            mapSpriteTexture.Apply(false, false);
             Rect mapRect = mapSprite.rect;
 
             mapTexture.SetPixels(
                 (int)textureSize.x,
-                (int)textureSize.y,
+                (int)textureSize.y - 256,
                 (int)mapRect.width,
                 (int)mapRect.height,
                 mapSpriteTexture.GetPixels());
 
             textureSize.x += mapRect.width;
 
-            if (xSize <= textureSize.x)
+            if (textureSize.x >= xSize)
             {
                 textureSize.x = 0;
-                textureSize.y += mapRect.height;
+                textureSize.y -= mapRect.height;
             }
-
-            // string directoryPath = @Application.streamingAssetsPath + "/tileImage/";
-            // if (Directory.Exists(directoryPath) == false)
-            // {
-            //     Directory.CreateDirectory(directoryPath);
-            // }
-
-            // var pngData = mapSpriteTexture.EncodeToJPG();
-            // var path = @Application.streamingAssetsPath + "/tileImage/" + $"{textureSize.x}R{textureSize.y}" + ".jpg";
-            // File.WriteAllBytes(path, pngData);
         }
 
         Rect tRect = new Rect(0, 0, mapTexture.width, mapTexture.height);
