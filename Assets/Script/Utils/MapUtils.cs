@@ -124,10 +124,8 @@ public class MapUtils
         return new Wgs84Info(avgLat, avgLon, 0);
     }
 
-    public static Vector2 tileToPixel(TileInfo tileCoord, Wgs84Info wgs84Coord)
+    public static Vector2 tileToPixel(TileInfo tileCoord, Wgs84Info wgs84Coord, double tilePixelSize)
     {
-        const double tilePixelSize = 256;
-
         double merX = tileCoord.lon / Math.Pow(2, tileCoord.zoom) * 360 - 180;
         double merY = Math.Atan(Math.Sinh(Math.PI * (1 - 2 * tileCoord.lat / Math.Pow(2, tileCoord.zoom)))) * 180 / Math.PI;
 
@@ -261,9 +259,9 @@ public class MapUtils
         tData.baseMapResolution = 2048;
 
         TileInfo mapTile = getTileListFromDEM(mapDemVOs.topL, mapDemVOs.topR, mapDemVOs.bottomL, mapDemVOs.bottomR);
-        Vector2 topLP = tileToPixel(mapTile, mapDemVOs.topL);
-        Vector2 bottomLP = tileToPixel(mapTile, mapDemVOs.bottomL);
-        Vector2 bottomRP = tileToPixel(mapTile, mapDemVOs.bottomR);
+        Vector2 topLP = tileToPixel(mapTile, mapDemVOs.topL, 256);
+        Vector2 bottomLP = tileToPixel(mapTile, mapDemVOs.bottomL, 256);
+        Vector2 bottomRP = tileToPixel(mapTile, mapDemVOs.bottomR, 256);
         tData.size = new Vector3(bottomRP.x - bottomLP.x, 0.3f, bottomLP.y - topLP.y);
         int index = 1;
         //yield return new WaitUntil(() => loadHeightMap.IsCompleted);
@@ -277,6 +275,7 @@ public class MapUtils
         container.name = "Terrains " + index.ToString();
         container.gameObject.SetActive(true);
         container.transform.position = new Vector3(0, 0, 0);
+        container.transform.localPosition = new Vector3(0.5f, 0.5f, 0.5f);
         container.transform.localScale = new Vector3(1, 1, 1);
         container.GetComponent<Terrain>().heightmapPixelError = 1;
         container.GetComponent<Terrain>().basemapDistance = 120;

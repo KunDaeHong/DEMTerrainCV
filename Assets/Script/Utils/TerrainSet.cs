@@ -140,9 +140,9 @@ public class TerrainSet : MonoBehaviour
             planeRenderer.material = planeMapMaterial;
 
             //지도 타일 좌표를 유니티 좌표로 변환
-            Vector2 topLP = MapUtils.tileToPixel(mapTile, topL);
-            Vector2 bottomLP = MapUtils.tileToPixel(mapTile, bottomL);
-            Vector2 bottomRP = MapUtils.tileToPixel(mapTile, bottomR);
+            Vector2 topLP = MapUtils.tileToPixel(mapTile, topL, 256);
+            Vector2 bottomLP = MapUtils.tileToPixel(mapTile, bottomL, 256);
+            Vector2 bottomRP = MapUtils.tileToPixel(mapTile, bottomR, 256);
             Rect tileImgPRect = new Rect(bottomLP.x, bottomLP.y, bottomRP.x - bottomLP.x, bottomLP.y - topLP.y);
             //Wgs84Info centerWgs84 = MapUtils.centerWithWgs84(wgs84Coords);
             //Vector2 centerP = MapUtils.tileToPixel(mapTile, centerWgs84);
@@ -211,9 +211,9 @@ public class TerrainSet : MonoBehaviour
     {
         //wgs84좌표에 의해 사이즈가 결정됨.
         TileInfo mapTile = MapUtils.getTileListFromDEM(topL, topR, bottomL, bottomR);
-        Vector2 topLP = MapUtils.tileToPixel(mapTile, topL);
-        Vector2 bottomLP = MapUtils.tileToPixel(mapTile, bottomL);
-        Vector2 bottomRP = MapUtils.tileToPixel(mapTile, bottomR);
+        Vector2 topLP = MapUtils.tileToPixel(mapTile, topL, 256);
+        Vector2 bottomLP = MapUtils.tileToPixel(mapTile, bottomL, 256);
+        Vector2 bottomRP = MapUtils.tileToPixel(mapTile, bottomR, 256);
         Rect tileImgPRect = new Rect(bottomLP.x, bottomLP.y, bottomRP.x - bottomLP.x, bottomLP.y - topLP.y);
         int terrainWidth = (int)tileImgPRect.width;
         int terrainHeight = (int)tileImgPRect.height;

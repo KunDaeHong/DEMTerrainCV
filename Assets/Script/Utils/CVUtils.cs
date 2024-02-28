@@ -271,4 +271,25 @@ public class CVUtils
         return ((x >= 0 && x < maxRowCol.x) && (y >= 0 && y < maxRowCol.y));
     }
 
+    public static Texture2D resizeTexture2D(Texture2D target, int width, int height)
+    {
+        Texture2D resizedTexture = new Texture2D(width, height);
+        Color[] pixels = resizedTexture.GetPixels();
+
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                float u = (float)x / (float)width;
+                float v = (float)y / (float)height;
+                pixels[y * width + x] = target.GetPixelBilinear(u, v);
+            }
+        }
+
+        resizedTexture.SetPixels(pixels);
+        resizedTexture.Apply();
+
+        return resizedTexture;
+    }
+
 }

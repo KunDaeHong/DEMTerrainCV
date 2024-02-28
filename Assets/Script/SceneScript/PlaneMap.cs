@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using System.IO;
+//using System.IO;
 
 using UnityEngine;
 using UnityEngine.UI;
@@ -14,7 +14,7 @@ public class PlaneMap : MonoBehaviour
 {
     [SerializeField]
     private Camera mainCam;
-    private Sprite mapSprite;
+    private Texture2D mapMainTexture;
     private bool isLoadingMap = false;
 
     private void Start()
@@ -144,7 +144,7 @@ public class PlaneMap : MonoBehaviour
 
             // plane을 지도 이미지로 변경
             Material planeMapMaterial = new Material(Shader.Find("Standard"));
-            planeMapMaterial.mainTexture = mapSprite.texture;
+            planeMapMaterial.mainTexture = mapMainTexture;
             Renderer planeRenderer = GetComponent<Renderer>();
             planeRenderer.material = planeMapMaterial;
             StartCoroutine(makeDEMTerrain(mapDemVOs));
@@ -176,11 +176,12 @@ public class PlaneMap : MonoBehaviour
             yield return getGoogleMapSatellite15(tileList, zoomMultiples);
 
             // plane을 지도 이미지로 변경
+            mapMainTexture = CVUtils.resizeTexture2D(mapMainTexture, 2048, 2048);
             Material planeMapMaterial = new Material(Shader.Find("Standard"));
-            planeMapMaterial.mainTexture = mapSprite.texture;
+            planeMapMaterial.mainTexture = mapMainTexture;
             Renderer planeRenderer = GetComponent<Renderer>();
             planeRenderer.material = planeMapMaterial;
-            //StartCoroutine(makeDEMTerrain(mapDemVOs));
+            StartCoroutine(makeDEMTerrain(mapDemVOs));
         }
         finally
         {
@@ -236,9 +237,9 @@ public class PlaneMap : MonoBehaviour
         Vector2 pivot = new Vector2(0.5f, 0.5f);
 
         bmp.LoadImage(receivedByteArr);
-        Rect tRect = new Rect(0, 0, bmp.width, bmp.height);
+        //Rect tRect = new Rect(0, 0, bmp.width, bmp.height);
 
-        mapSprite = Sprite.Create(bmp, tRect, pivot);
+        mapMainTexture = bmp;
         yield return "";
     }
 
@@ -261,7 +262,7 @@ public class PlaneMap : MonoBehaviour
                 {"key", Const.Google_API}
         };
         string query = NetworkVO.queryParameterMaker(tileQueryDict);
-        List<Sprite> sprites = new List<Sprite>();
+        List<Texture2D> textures = new List<Texture2D>();
 
         foreach (var tile in tileList)
         {
@@ -279,22 +280,21 @@ public class PlaneMap : MonoBehaviour
 
             bmp.LoadImage(receivedByteArr);
             Rect tRect = new Rect(0, 0, bmp.width, bmp.height);
-            //sprites.Add(Sprite.Create(bmp, tRect, pivot));
-            sprites.Add(Sprite.Create(bmp, tRect, pivot));
-        }
-        Sprite mergedSprite = mergeSprite(sprites, tileXWay);
-
-        string directoryPath = @Application.streamingAssetsPath + "/tileImage/";
-        if (Directory.Exists(directoryPath) == false)
-        {
-            Directory.CreateDirectory(directoryPath);
+            textures.Add(bmp);
         }
 
-        var pngData = mergedSprite.texture.EncodeToJPG();
-        var path = @Application.streamingAssetsPath + "/tileImage/" + "background" + ".jpg";
-        File.WriteAllBytes(path, pngData);
+        mapMainTexture = mergeTexture(textures, tileXWay);
 
-        mapSprite = mergedSprite;
+        // string directoryPath = @Application.streamingAssetsPath + "/tileImage/";
+        // if (Directory.Exists(directoryPath) == false)
+        // {
+        //     Directory.CreateDirectory(directoryPath);
+        // }
+
+        // var pngData = mapSprite.texture.EncodeToJPG();
+        // var path = @Application.streamingAssetsPath + "/tileImage/" + "background" + ".jpg";
+        // File.WriteAllBytes(path, pngData);
+        yield return "";
     }
 
     IEnumerator makeDEMTerrain(MapDemVO[] mapDemVOs)
@@ -330,24 +330,24 @@ public class PlaneMap : MonoBehaviour
             var mapDem = mapDemVOs[i - 1];
             var terrainObj = GameObject.Find($"Terrains {i}");
             TileInfo mapTile = MapUtils.getTileListFromDEM(mapDem.topL, mapDem.topR, mapDem.bottomL, mapDem.bottomR);
-            //지도 타일 좌표를 유니티 좌표로 변환
-            Vector2 topLP = MapUtils.tileToPixel(mapTile, mapDem.topL);
-            Vector2 bottomLP = MapUtils.tileToPixel(mapTile, mapDem.bottomL);
-            Vector2 bottomRP = MapUtils.tileToPixel(mapTile, mapDem.bottomR);
+            //지도 타일 좌표를 유니티 좌표로 변환 (유니티는 모두 256사이즈를 사용중 256*8=2048)
+            Vector2 topLP = MapUtils.tileToPixel(mapTile, mapDem.topL, 2048);
+            Vector2 bottomLP = MapUtils.tileToPixel(mapTile, mapDem.bottomL, 2048);
+            Vector2 bottomRP = MapUtils.tileToPixel(mapTile, mapDem.bottomR, 2048);
             Rect tileImgPRect = new Rect(bottomLP.x, bottomLP.y, bottomRP.x - bottomLP.x, bottomLP.y - topLP.y);
             //Wgs84Info centerWgs84 = MapUtils.centerWithWgs84(wgs84Coords);
             //Vector2 centerP = MapUtils.tileToPixel(mapTile, centerWgs84);
 
             //타일좌표상에서 유니티 좌표로 변환 후 오브젝트가 이동할 좌표 구하기
-            Vector3 mapPose = new Vector3((int)tileImgPRect.x, 0, (int)tileImgPRect.y);
+            Vector3 mapPose = new Vector3(tileImgPRect.x / 8, 0, tileImgPRect.y / 8);
             // Terrain currentTerrain = terrainObj.transform.GetChild(0).gameObject.GetComponent<Terrain>(); //GIS TECH 라이브러리 사용 시
             Terrain currentTerrain = terrainObj.GetComponent<Terrain>(); // 직접 만든 MapUtil의 
             terrainObj.transform.position = mapPose;
 
             //받은 dem에 지도 material로 생성
-            Sprite newTerrainImg = cropSprite(mapSprite, tileImgPRect);
+            Texture2D newTerrainImg = cropTexture(mapMainTexture, tileImgPRect);
             Material newTerrainMaterial = new Material(Shader.Find("Standard"));
-            newTerrainMaterial.mainTexture = newTerrainImg.texture;
+            newTerrainMaterial.mainTexture = newTerrainImg;
             currentTerrain.materialTemplate = newTerrainMaterial;
             currentTerrain.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
 
@@ -374,9 +374,8 @@ public class PlaneMap : MonoBehaviour
     }
 
     // Sprite를 사각형의 틀에 맞게 크롭하는 함수
-    Sprite cropSprite(Sprite sprite, Rect rect)
+    Texture2D cropTexture(Texture2D texture, Rect rect)
     {
-        Texture2D texture = sprite.texture;
         Color[] pixels = texture.GetPixels((int)rect.x, (int)rect.y, (int)rect.width, (int)rect.height);
         Debug.Log($"cropSprite pixels x: {(int)rect.x} y: {(int)rect.y} width: {(int)rect.width} height: {(int)rect.height}");
 
@@ -384,45 +383,44 @@ public class PlaneMap : MonoBehaviour
         croppedTexture.SetPixels(pixels);
         croppedTexture.Apply();
 
-        Sprite croppedSprite = Sprite.Create(croppedTexture, new Rect(0, 0, (int)rect.width, (int)rect.height), new Vector2(0.5f, 0.5f));
+        //Sprite croppedSprite = Sprite.Create(croppedTexture, new Rect(0, 0, (int)rect.width, (int)rect.height), new Vector2(0.5f, 0.5f));
 
-        return croppedSprite;
+        return croppedTexture;
     }
 
     //Makes one sprite from multiple sprite.
-    Sprite mergeSprite(List<Sprite> sprites, int tileXWay)
+    Texture2D mergeTexture(List<Texture2D> textures, int tileXWay)
     {
         int xSize = tileXWay * 256;
         Texture2D mapTexture = new Texture2D(xSize, xSize);
         Vector2 pivot = new Vector2(0.5f, 0.5f);
         Vector2 textureSize = new Vector2(0, 2048f);
 
-        mapTexture.Apply(false, false);
+        mapTexture.Apply(true, false);
 
-        foreach (var mapSprite in sprites)
+        foreach (var texture in textures)
         {
-            Texture2D mapSpriteTexture = mapSprite.texture;
-            mapSpriteTexture.Apply(false, false);
-            Rect mapRect = mapSprite.rect;
+            Texture2D mapSpriteTexture = texture;
+            mapSpriteTexture.Apply(true, false);
 
             mapTexture.SetPixels(
                 (int)textureSize.x,
                 (int)textureSize.y - 256,
-                (int)mapRect.width,
-                (int)mapRect.height,
+                256,
+                256,
                 mapSpriteTexture.GetPixels());
 
-            textureSize.x += mapRect.width;
+            textureSize.x += 256;
 
             if (textureSize.x >= xSize)
             {
                 textureSize.x = 0;
-                textureSize.y -= mapRect.height;
+                textureSize.y -= 256;
             }
         }
 
-        Rect tRect = new Rect(0, 0, mapTexture.width, mapTexture.height);
-        return Sprite.Create(mapTexture, tRect, pivot);
+        // Rect tRect = new Rect(0, 0, mapTexture.width, mapTexture.height);
+        return mapTexture;
     }
 
 }
