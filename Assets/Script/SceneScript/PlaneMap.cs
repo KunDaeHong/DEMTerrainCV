@@ -67,7 +67,7 @@ public class PlaneMap : MonoBehaviour
             // bottomR: new Wgs84Info(35.12989550772555, 128.92161318930567, 0)
             );
 
-            MapDemVO[] demVOs = new MapDemVO[] { roadDem };
+            MapDemVO[] demVOs = new MapDemVO[] { terrainDem };
 
             if (!isLoadingMap)
             {
@@ -85,10 +85,14 @@ public class PlaneMap : MonoBehaviour
             demPath: Application.streamingAssetsPath + "/2-3_DEM_20240105.tif",
             elevationMinMax: new Vector2(-7.52798f, 7.82004f),
             terrainDimension: new Vector2(1.5589640f, 1.7998629f),
-            topL: new Wgs84Info(35.14610622734318, 128.90448959913755, 0),
-            topR: new Wgs84Info(35.146118706315704, 128.9215973525445, 0),
-            bottomL: new Wgs84Info(35.1298830354115, 128.9045088292273, 0),
-            bottomR: new Wgs84Info(35.12989550683726, 128.92161318930567, 0)
+            topL: new Wgs84Info(35.146106228231645, 128.90448959913755, 0),
+            topR: new Wgs84Info(35.14611870720418, 128.9215973525445, 0),
+            bottomL: new Wgs84Info(35.129883036299795, 128.9045088292273, 0),
+            bottomR: new Wgs84Info(35.12989550772555, 128.92161318930567, 0)
+        // topL: new Wgs84Info(35.14610622734318, 128.90448959913755, 0),
+        // topR: new Wgs84Info(35.146118706315704, 128.9215973525445, 0),
+        // bottomL: new Wgs84Info(35.1298830354115, 128.9045088292273, 0),
+        // bottomR: new Wgs84Info(35.12989550683726, 128.92161318930567, 0)
         );
 
         //지면 (지면의 경우 좌표 데이터가 도로와 차이가 심하여 도로 사이즈와 같도록 임시 수정)
@@ -98,10 +102,10 @@ public class PlaneMap : MonoBehaviour
             elevationMinMax: new Vector2(-7.52798f, 7.82004f),
             // terrainDimension: new Vector2(3.0436480f, 2.5983520f),
             terrainDimension: new Vector2(1.5589640f, 1.7998629f),
-            topL: new Wgs84Info(35.14610622734318, 128.90448959913755, 0),
-            topR: new Wgs84Info(35.146118706315704, 128.9215973525445, 0),
-            bottomL: new Wgs84Info(35.1298830354115, 128.9045088292273, 0),
-            bottomR: new Wgs84Info(35.12989550683726, 128.92161318930567, 0)
+            topL: new Wgs84Info(35.146106228231645, 128.90448959913755, 0),
+            topR: new Wgs84Info(35.14611870720418, 128.9215973525445, 0),
+            bottomL: new Wgs84Info(35.129883036299795, 128.9045088292273, 0),
+            bottomR: new Wgs84Info(35.12989550772555, 128.92161318930567, 0)
         // topL: new Wgs84Info(35.146106228231645, 128.90448959913755, 0),
         // topR: new Wgs84Info(35.14611870720418, 128.9215973525445, 0),
         // bottomL: new Wgs84Info(35.129883036299795, 128.9045088292273, 0),
@@ -139,7 +143,7 @@ public class PlaneMap : MonoBehaviour
                 mapDemVOs.First().bottomR
             };
 
-            TileInfo mapTile = MapUtils.getTileListFromDEM(wgs84Coords[0], wgs84Coords[1], wgs84Coords[2], wgs84Coords[3]);
+            TileInfo mapTile = MapUtils.MapLoadUtils.getTileListFromDEM(wgs84Coords[0], wgs84Coords[1], wgs84Coords[2], wgs84Coords[3]);
             yield return getGoogleMapSatellite(mapTile);
 
             // plane을 지도 이미지로 변경
@@ -168,8 +172,8 @@ public class PlaneMap : MonoBehaviour
                 mapDemVOs.First().bottomR
             };
 
-            TileInfo mapTile = MapUtils.getTileListFromDEM(wgs84Coords[0], wgs84Coords[1], wgs84Coords[2], wgs84Coords[3]);
-            List<TileInfo> tileList = MapUtils.getTilesInTile(mapTile);
+            TileInfo mapTile = MapUtils.MapLoadUtils.getTileListFromDEM(wgs84Coords[0], wgs84Coords[1], wgs84Coords[2], wgs84Coords[3]);
+            List<TileInfo> tileList = MapUtils.MapLoadUtils.getTilesInTile(mapTile);
             int zoomDiff = 15 - mapTile.zoom;
             int zoomMultiples = 1 << zoomDiff;
 
@@ -303,8 +307,8 @@ public class PlaneMap : MonoBehaviour
         foreach (var mapDem in mapDemVOs)
         {
 
-            yield return new WaitUntil(() => MapUtils.isLoadingDEM == false);
-            yield return MapUtils.makeDEM(mapDem, this);
+            yield return new WaitUntil(() => MapUtils.MapLoadUtils.isLoadingDEM == false);
+            yield return MapUtils.MapLoadUtils.makeDEM(mapDem, this);
             // MapUtils.makeTerrain(
             //     mapDem.demPath,
             //     mapDem.elevationMinMax,
@@ -329,11 +333,11 @@ public class PlaneMap : MonoBehaviour
         {
             var mapDem = mapDemVOs[i - 1];
             var terrainObj = GameObject.Find($"Terrains {i}");
-            TileInfo mapTile = MapUtils.getTileListFromDEM(mapDem.topL, mapDem.topR, mapDem.bottomL, mapDem.bottomR);
+            TileInfo mapTile = MapUtils.MapLoadUtils.getTileListFromDEM(mapDem.topL, mapDem.topR, mapDem.bottomL, mapDem.bottomR);
             //지도 타일 좌표를 유니티 좌표로 변환 (유니티는 모두 256사이즈를 사용중 256*8=2048)
-            Vector2 topLP = MapUtils.tileToPixel(mapTile, mapDem.topL, 2048);
-            Vector2 bottomLP = MapUtils.tileToPixel(mapTile, mapDem.bottomL, 2048);
-            Vector2 bottomRP = MapUtils.tileToPixel(mapTile, mapDem.bottomR, 2048);
+            Vector2 topLP = MapUtils.MapLoadUtils.tileToPixel(mapTile, mapDem.topL, 2048);
+            Vector2 bottomLP = MapUtils.MapLoadUtils.tileToPixel(mapTile, mapDem.bottomL, 2048);
+            Vector2 bottomRP = MapUtils.MapLoadUtils.tileToPixel(mapTile, mapDem.bottomR, 2048);
             Rect tileImgPRect = new Rect(bottomLP.x, bottomLP.y, bottomRP.x - bottomLP.x, bottomLP.y - topLP.y);
             //Wgs84Info centerWgs84 = MapUtils.centerWithWgs84(wgs84Coords);
             //Vector2 centerP = MapUtils.tileToPixel(mapTile, centerWgs84);

@@ -71,8 +71,28 @@ public class CVUtils
         }
 
         Texture2D texture = new Texture2D(width, height, TextureFormat.RGBA32, false);
-        texture.SetPixels(colors);
-        texture.Apply(true);
+        texture.Apply(true, false);
+
+        Vector2 textureSize = new Vector2(0, 0);
+
+        foreach (var color in colors)
+        {
+            texture.SetPixel(
+                (int)textureSize.x,
+                (int)textureSize.y - height,
+                color);
+
+            textureSize.x += 1;
+
+            if (textureSize.x >= width)
+            {
+                textureSize.x = 0;
+                textureSize.y -= 1;
+            }
+        }
+
+        //texture.SetPixels(colors);
+
 
         /**
         Unity Editor에서 tif을 사용 시 자동으로 정사각형사이즈로 변환 후 
