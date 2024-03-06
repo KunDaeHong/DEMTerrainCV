@@ -71,6 +71,7 @@ public class CVUtils
         }
 
         Texture2D texture = new Texture2D(width, height, TextureFormat.RGBA32, false);
+        RenderTexture renderTexture = new RenderTexture(texture.width, texture.height, 0);
         texture.Apply(true, false);
 
         Vector2 textureSize = new Vector2(0, 0);
@@ -89,11 +90,11 @@ public class CVUtils
                 textureSize.x = 0;
                 textureSize.y -= 1;
             }
+
+
         }
 
         //texture.SetPixels(colors);
-
-
         /**
         Unity Editor에서 tif을 사용 시 자동으로 정사각형사이즈로 변환 후 
         알파색채널은 무시하고 RGB로 BC6H(HDR) Compression을 하여 최대한 평평하게 나오도록 변경.

@@ -235,6 +235,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   mainCam: {fileID: 963194227}
+  mapMainTexture: {fileID: 2800000, guid: e2b8b880896a24e739b8259a9b0e55c6, type: 3}
 --- !u!1 &162077626
 GameObject:
   m_ObjectHideFlags: 0

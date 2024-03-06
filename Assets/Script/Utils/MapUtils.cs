@@ -126,16 +126,37 @@ namespace MapUtils
             return new Wgs84Info(avgLat, avgLon, 0);
         }
 
-        public static Vector2 tileToPixel(TileInfo tileCoord, Wgs84Info wgs84Coord, double tilePixelSize)
+        public static Vector2 tileToPixel(TileInfo tileCoord, Wgs84Info wgs84Coord, double tilePixelSize) // tile2Wgs84 함수 사용 필수
         {
+            // Earth Radius
+            double earthR = 6371e3;
+
+            //Tile WGS84 Coordinate
+            //It will returns the coordinate of the upper left point.
             double merX = tileCoord.lon / Math.Pow(2, tileCoord.zoom) * 360 - 180;
             double merY = Math.Atan(Math.Sinh(Math.PI * (1 - 2 * tileCoord.lat / Math.Pow(2, tileCoord.zoom)))) * 180 / Math.PI;
+            //It will returns the coordinate of the bottom left point.
+            double merYB = Math.Atan(Math.Sinh(Math.PI * (1 - 2 * (tileCoord.lat + 1) / Math.Pow(2, tileCoord.zoom)))) * 180 / Math.PI;
 
-            double pX = (double)((wgs84Coord.lon - merX) * Math.Pow(2, tileCoord.zoom) * tilePixelSize / 360);
-            double py = (double)((merY - wgs84Coord.lat) * Math.Pow(2, tileCoord.zoom) * tilePixelSize / 360);
+            // float pX = (float)((wgs84Coord.lon - merX) * Math.Pow(2, tileCoord.zoom) * tilePixelSize / 360);
+            // float pY = (float)((merY - wgs84Coord.lat) * Math.Pow(2, tileCoord.zoom) * tilePixelSize / 360);
+
+            //Radian
+            float lat1 = (float)((wgs84Coord.lat * Math.PI) / 180); // specific lat
+            float lat2 = (float)((merY * Math.PI) / 180); // merY lat
+            float lat3 = (float)((merYB * Math.PI) / 180); // merYB lat
+            float lonCos = (float)((merX - wgs84Coord.lon) * Math.PI / 180); // specific lon Radian
+            float lonCosSame = (float)((merX - merX) * Math.PI / 180); // merX lon cos Radian
+
+            float distX = (float)(Math.Acos(Math.Sin(lat1) * Math.Sin(lat1) + Math.Cos(lat1) * Math.Cos(lat1) * Math.Cos(lonCos)) * earthR);
+            float distY = (float)(Math.Acos(Math.Sin(lat1) * Math.Sin(lat2) + Math.Cos(lat1) * Math.Cos(lat2) * Math.Cos(lonCosSame)) * earthR);
+            float merYBDist = (float)(Math.Acos(Math.Sin(lat3) * Math.Sin(lat2) + Math.Cos(lat3) * Math.Cos(lat2) * Math.Cos(lonCosSame)) * earthR);
+
+            float pYN = (float)((distY * tilePixelSize) / merYBDist);
+            float pXN = (float)((distX * tilePixelSize) / merYBDist);
 
             Debug.Log("finish with pixel coordinate");
-            return new Vector2((float)pX, (float)py);
+            return new Vector2(pXN, pYN);
         }
 
         public static TileInfo wgs84ToTile(double lon, double lat, int zoom)
@@ -313,6 +334,8 @@ namespace MapUtils
 
             tData.SetHeights(0, 0, heightValues);
 
+            /** 주석을 해제 시 자동으로 전체 주석처리 됩니다.
+
             //상관 필터링 부드럽게 경계처리
             for (int cX = 0; cX < heightValues.GetLength(0); cX++)
             {
@@ -327,7 +350,6 @@ namespace MapUtils
             yield return new WaitUntil(() => bilateralFilterTask.IsCompleted);
 
             //median 필터링으로 필요없는 부분은 날리고 필요한 부분은 채움
-            //yield return medianFilteringCoroutine(gameClass, heightValues, 3);
             Task filterTask = CVUtils.testMedianFilteringCoroutine(heightValues, 3);
             yield return new WaitUntil(() => filterTask.IsCompleted);
 
@@ -339,6 +361,9 @@ namespace MapUtils
                     heightValues[cX, cY] = CVUtils.terrainSmoothAvg(heightValues, cX, cY, 0.9f);
                 }
             }
+
+            // **/
+            yield return "";
 
             tData.SetHeights(0, 0, heightValues);
             isLoadingDEM = false;
