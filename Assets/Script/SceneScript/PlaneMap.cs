@@ -168,10 +168,12 @@ public class PlaneMap : MonoBehaviour
         }
     }
 
-    //맵 로딩(고화질 Beta 참고: Terrain을 생성하지 않습니다.)
+    //맵 로딩
     IEnumerator loadMapHighQuality(MapDemVO[] mapDemVOs)
     {
         isLoadingMap = true;
+        GameObject.Find("LoadingTitleBar").GetComponent<Image>().enabled = true;
+        GameObject.Find("LoadingTitle").GetComponent<Text>().enabled = true;
         try
         {
             List<Wgs84Info> wgs84Coords = new List<Wgs84Info> {
@@ -389,6 +391,14 @@ public class PlaneMap : MonoBehaviour
         GameObject.Find("LoadingTitle").GetComponent<Text>().enabled = false;
     }
 
+
+    IEnumerator makeSewer()
+    {
+        string sewerPrefabPath = "Assets/assets/Terrains/OBJ/Facility" + "/Pipe" + "/Pipe.prefab";
+
+
+        yield return "";
+    }
     // Sprite를 사각형의 틀에 맞게 크롭하는 함수
     Texture2D cropTexture(Texture2D texture, Rect rect)
     {

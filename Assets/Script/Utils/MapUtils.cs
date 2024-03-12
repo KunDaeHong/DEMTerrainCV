@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.IO;
 
 using GISTech.GISTerrainLoader;
 
@@ -304,37 +305,30 @@ namespace MapUtils
             container.GetComponent<Terrain>().basemapDistance = 120;
             container.GetComponent<Terrain>().terrainData = tData;
 
-            yield return makeTerrain(CVUtils.loadTiffToTexture2D(mapDemVOs.demPath), tData);
+            Texture2D heightMap = CVUtils.loadTiffToTexture2D(mapDemVOs.demPath);
+            Texture2D heightMapResize = CVUtils.resizeTexture2D(heightMap, 2048, 2048);
+
+            yield return makeTerrain(heightMapResize, tData);
         }
 
         public static IEnumerator makeTerrain(Texture2D heightMap, TerrainData tData)
         {
-            int tWidth = tData.heightmapResolution;
-            int tHeight = tData.heightmapResolution;
-            float[,] heightValues = tData.GetHeights(0, 0, tWidth, tHeight);
+            int tWidth = heightMap.width;
+            int tHeight = heightMap.height;
+            float[,] heightValues = new float[tHeight, tWidth];
 
             for (int terrainY = 0; terrainY < tHeight; terrainY++)
             {
-                if (terrainY >= heightMap.height)
-                {
-                    break;
-                }
-
                 for (int terrainX = 0; terrainX < tWidth; terrainX++)
                 {
-                    if (terrainX >= heightMap.width)
-                    {
-                        break;
-                    }
-
-                    Color heightColor = heightMap.GetPixel(terrainY, terrainX);
-                    heightValues[terrainX, terrainY] = heightColor.r;
+                    Color heightColor = heightMap.GetPixel(terrainX, terrainY - tHeight);
+                    heightValues[terrainY, terrainX] = heightColor.r;
                 }
             }
 
-            tData.SetHeights(0, 0, heightValues);
+            //tData.SetHeights(0, 0, heightValues);
 
-            /** 주석을 해제 시 자동으로 전체 주석처리 됩니다.
+            ///** 주석을 해제 시 자동으로 전체 주석처리 됩니다.
 
             //상관 필터링 부드럽게 경계처리
             for (int cX = 0; cX < heightValues.GetLength(0); cX++)
@@ -345,12 +339,12 @@ namespace MapUtils
                 }
             }
 
-            //바이레터럴 필터
+            //바이레터럴 필터로 필요없는 부분은 날리고 필요한 부분 미리 채움
             Task bilateralFilterTask = CVUtils.bilateralFilterCoroutine(heightValues);
             yield return new WaitUntil(() => bilateralFilterTask.IsCompleted);
 
-            //median 필터링으로 필요없는 부분은 날리고 필요한 부분은 채움
-            Task filterTask = CVUtils.testMedianFilteringCoroutine(heightValues, 3);
+            //median필터로 필요한 부분은 채움
+            Task filterTask = CVUtils.testMedianFilteringCoroutine(heightValues, 5);
             yield return new WaitUntil(() => filterTask.IsCompleted);
 
             //상관 필터링 부드럽게 경계처리
@@ -363,13 +357,30 @@ namespace MapUtils
             }
 
             // **/
-            yield return "";
-
             tData.SetHeights(0, 0, heightValues);
             isLoadingDEM = false;
             Debug.Log("Finish Filtering DEM");
+
+            /**
+            Texture2D demConverted = CVUtils.hightValue2Texture2D(heightValues);
+            string directoryPath = @Application.streamingAssetsPath + "/tileImage/";
+            if (Directory.Exists(directoryPath) == false)
+            {
+                Directory.CreateDirectory(directoryPath);
+            }
+
+            var pngData = demConverted.EncodeToJPG();
+            var path = @Application.streamingAssetsPath + "/tileImage/" + "dem" + ".jpg";
+            File.WriteAllBytes(path, pngData);
+            //**/
         }
-    }
+
+
+        public static IEnumerator makePipe() {
+            
+            yield return "";
+        }
+    }   
 }
 
 public class YieldCollection : CustomYieldInstruction

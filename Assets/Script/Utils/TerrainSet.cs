@@ -46,7 +46,7 @@ public class TerrainSet : MonoBehaviour
         // }
 
         // terrainData.SetHeights(0, 0, heightValues);
-        StartCoroutine(MapUtils.MapLoadUtils.makeTerrain(HeightMap, terrainData));
+        // StartCoroutine(MapUtils.MapLoadUtils.makeTerrain(HeightMap, terrainData));
     }
 
     private void Start()

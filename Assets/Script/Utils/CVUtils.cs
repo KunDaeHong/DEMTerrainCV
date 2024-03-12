@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+//using System.IO;
 
 using BitMiracle.LibTiff.Classic;
 
@@ -80,7 +81,7 @@ public class CVUtils
         {
             texture.SetPixel(
                 (int)textureSize.x,
-                (int)textureSize.y - height,
+                height - (int)textureSize.y,
                 color);
 
             textureSize.x += 1;
@@ -88,10 +89,8 @@ public class CVUtils
             if (textureSize.x >= width)
             {
                 textureSize.x = 0;
-                textureSize.y -= 1;
+                textureSize.y += 1;
             }
-
-
         }
 
         //texture.SetPixels(colors);
@@ -99,6 +98,53 @@ public class CVUtils
         Unity Editor에서 tif을 사용 시 자동으로 정사각형사이즈로 변환 후 
         알파색채널은 무시하고 RGB로 BC6H(HDR) Compression을 하여 최대한 평평하게 나오도록 변경.
         **/
+
+        // string directoryPath = @Application.streamingAssetsPath + "/tileImage/";
+        // if (Directory.Exists(directoryPath) == false)
+        // {
+        //     Directory.CreateDirectory(directoryPath);
+        // }
+
+        // var pngData = texture.EncodeToJPG();
+        // var path = @Application.streamingAssetsPath + "/tileImage/" + "dem" + ".jpg";
+        // File.WriteAllBytes(path, pngData);
+
+        return texture;
+    }
+
+    public static Texture2D hightValue2Texture2D(float[,] heightMap)
+    {
+
+        Texture2D texture = new Texture2D(heightMap.GetLength(0), heightMap.GetLength(1), TextureFormat.RGBA32, false);
+        Vector2 textureSize = new Vector2(0, 0);
+        Color[] colors = new Color[texture.width * texture.height];
+        texture.Apply(true, false);
+
+        for (int r = 0; r < texture.width; r++)
+        {
+            for (int c = 0; c < texture.height; c++)
+            {
+                float value = heightMap[r, c];
+                Color color = new Color(value, value, value);
+                colors[c * texture.width + r] = color;
+            }
+        }
+
+        foreach (var color in colors)
+        {
+            texture.SetPixel(
+                (int)textureSize.x,
+                texture.height - (int)textureSize.y,
+                color);
+
+            textureSize.x += 1;
+
+            if (textureSize.x >= texture.width)
+            {
+                textureSize.x = 0;
+                textureSize.y += 1;
+            }
+        }
 
         return texture;
     }
@@ -123,7 +169,7 @@ public class CVUtils
         {
             Task.Run(() =>
             {
-                bilateralFilter(convolutionList, 5, 3, 7);
+                bilateralFilter(convolutionList, 5, 4, 8);
             })
         };
 
@@ -292,6 +338,7 @@ public class CVUtils
         return ((x >= 0 && x < maxRowCol.x) && (y >= 0 && y < maxRowCol.y));
     }
 
+    //양선형 보간법
     public static Texture2D resizeTexture2D(Texture2D target, int width, int height)
     {
         Texture2D resizedTexture = new Texture2D(width, height);
@@ -311,6 +358,26 @@ public class CVUtils
         resizedTexture.Apply();
 
         return resizedTexture;
+    }
+
+    //이미지 기하학적 변형
+    public static Texture2D geoRemapLensTexture2D(Texture2D target, float radius)
+    {
+        int scale = 1;
+        int tWidth = target.width;
+        int tHeight = target.height;
+        float[,] heightMap = new float[target.width, target.height];
+
+        for (int terrainY = 0; terrainY < tHeight; terrainY++)
+        {
+            for (int terrainX = 0; terrainX < tWidth; terrainX++)
+            {
+                Color heightColor = target.GetPixel(terrainX, terrainY - tHeight);
+                heightMap[terrainY, terrainX] = heightColor.r;
+            }
+        }
+
+        return hightValue2Texture2D(heightMap);
     }
 
 }
