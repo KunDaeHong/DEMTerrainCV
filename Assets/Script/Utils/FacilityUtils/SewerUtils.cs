@@ -1,11 +1,15 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using UnityEditor;
 using UnityEngine;
 
 namespace FacilityUtils
 {
     public class SewerUtils
     {
+        static string sewerPrefabPath = "Assets/assets/Terrains/OBJ/Facility" + "/Pipe" + "/Pipe.prefab";
+        static string sewerStandardMtlPath = "Asset/assets/Terrains/Material" + "BackRender.mat";
 
         static void setAlign(List<GameObject> pipeObjs, List<Wgs84Info> pipeLocationList)
         {
@@ -17,9 +21,41 @@ namespace FacilityUtils
             }
         }
 
-        static void add(List<FacilityVO.FacilityInfoVO> pipes)
+        static void add(List<FacilityVO.FacilityInfoVO> pipes, TileInfo currentTileLoc, int tilePixelSize)
         {
+            int index = 1;
+            int previousDeg = 0; //직전 각도
+            GameObject obj = (GameObject)AssetDatabase.LoadAssetAtPath(sewerPrefabPath, typeof(GameObject));
+            Material stdMtl = (Material)AssetDatabase.LoadAssetAtPath(sewerStandardMtlPath, typeof(Material));
+
+            while (GameObject.Find("Sewer " + index.ToString()))
+            {
+                index++;
+            }
+
             //linestring의 경우 교차지점은 1개의 위치좌표로 관리
+            //다음 파이프가 존재 시 해당 gameobj에서 잘라야함.
+            for (int i = 0; i < pipes.Count - 1; i++)
+            {
+                var pipe = pipes[i];
+                GameObject nPipe = GameObject.Instantiate(obj);
+
+                Vector2 startP = MapUtils.MapLoadUtils.tileToPixel(currentTileLoc, pipe.coords.First(), tilePixelSize);
+                Vector2 endP = MapUtils.MapLoadUtils.tileToPixel(currentTileLoc, pipe.coords.Last(), tilePixelSize);
+
+                float width = Math.Abs(startP.x - endP.x);
+                float height = Math.Abs(startP.y - endP.y);
+
+                if (width < height)
+                {
+
+                }
+
+                // tData.size = new Vector3(bottomRP.x - bottomLP.x, 0.3f, bottomLP.y - topLP.y);
+                // setSewerObj()
+
+
+            }
         }
 
         /// <summary>
