@@ -81,8 +81,8 @@ public class PlaneMap : MonoBehaviour
             if (!isLoadingMap)
             {
                 //StartCoroutine(loadMap(demVOs));
-                //StartCoroutine(loadMapHighQuality(demVOs));
-                StartCoroutine(testVietnam());
+                StartCoroutine(loadMapHighQuality(demVOs));
+                //StartCoroutine(testVietnam());
             }
         }
     }
@@ -243,7 +243,8 @@ public class PlaneMap : MonoBehaviour
         string api_url = $"{APIConst.google_session_api}?{query}";
         Dictionary<string, string> data = new Dictionary<string, string>()
         {
-            {"mapType", "satellite"},
+            //{"mapType", "satellite"},
+            {"mapType", "roadmap"},
             {"language", "en-US"},
             {"region", "US"}
         };
@@ -310,8 +311,8 @@ public class PlaneMap : MonoBehaviour
 
         foreach (var tile in tileList)
         {
-            //string api_url = $"{APIConst.google_map_api}/{tile.zoom}/{tile.lon}/{tile.lat}?{query}";
-            string api_url = $"{APIConst.map4d_tms_map_api}/{tile.zoom}/{tile.lon}/{tile.lat}.png";
+            string api_url = $"{APIConst.google_map_api}/{tile.zoom}/{tile.lon}/{tile.lat}?{query}";
+            //string api_url = $"{APIConst.map4d_tms_map_api}/{tile.zoom}/{tile.lon}/{tile.lat}.png";
             byte[] receivedByteArr = new byte[0];
 
             Task<byte[]> task = NetworkVO.reqAPI<byte[]>(api_url, NetworkEnum.GET);
@@ -448,7 +449,7 @@ public class PlaneMap : MonoBehaviour
         int xSize = tileXWay * 256;
         Texture2D mapTexture = new Texture2D(xSize, xSize);
         Vector2 pivot = new Vector2(0.5f, 0.5f);
-        Vector2 textureSize = new Vector2(0, 4096f);
+        Vector2 textureSize = new Vector2(0, tileXWay * 256);
 
         mapTexture.Apply(true, false);
 
