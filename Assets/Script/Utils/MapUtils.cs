@@ -17,8 +17,6 @@ namespace MapUtils
         private static RuntimeTerrainGenerator runtimeGenerator;
         private static GISTerrainLoaderRuntimePrefs runtimePrefs;
         public static bool isLoadingDEM = false;
-
-        //기본 17배율 줌 값 셋팅
         public static TileInfo getTileListFromDEM(
             Wgs84Info topL,
             Wgs84Info topR,
@@ -26,7 +24,7 @@ namespace MapUtils
             Wgs84Info bottomR)
         {
 
-            int tileZoom = 17;
+            int tileZoom = 20;
             TileInfo tileTopL = wgs84ToTile(topL.lon, topL.lat, tileZoom);
             TileInfo tileTopR = wgs84ToTile(topR.lon, topR.lat, tileZoom);
             TileInfo tileBottomL = wgs84ToTile(bottomL.lon, bottomL.lat, tileZoom);
@@ -103,12 +101,10 @@ namespace MapUtils
         // This function returns the NW-Corner of the tile.
         public static Wgs84Info tile2Wgs84(int lon, int lat, int zoom)
         {
-            int zoomN = 1 << zoom;
-            double lon_deg = lon / zoomN * 360.0 - 180;
-            double lat_rad = Math.Atan(Math.Sinh(Math.PI * (1 - 2 * lat / zoomN)));
-            double lat_deg = lat_rad * (180 / Math.PI);
+            double merX = lon / Math.Pow(2, zoom) * 360 - 180;
+            double merY = Math.Atan(Math.Sinh(Math.PI * (1 - 2 * lat / Math.Pow(2, zoom)))) * 180 / Math.PI;
 
-            return new Wgs84Info(lat_deg, lon_deg, 0);
+            return new Wgs84Info(merY, merX, 0);
         }
 
         // This function returns the center of the tile.
@@ -228,16 +224,6 @@ namespace MapUtils
             return tileInfo;
         }
 
-        /**
-        // TODO:대충 13 == x 레벨에서 전체로 가져온다라고 가정 할 시
-
-        구글 지도는 19레벨이 최대 해상도이고 19 - 현재 타일의 지도 레벨(x)
-        그럼 6이 나온다. 1부터 6까지 수열로 곱한다. 대략 64가 나오고 각 타일은 줌을 할 시 2제곱
-        그럼 13레벨을 64개의 조각을 나누어서 각 사각형을 만든 후 해당 사각형의 센터 좌표를 다시 wgs84좌표로 변환
-        
-        wgs84좌표를 다시 타일 좌표로 변환 후 구글 satellite 타일 이미지로 64개에 대한 타일 요청 후 64개의 타일을 순서대로 접합
-
-        **/
 
         //MARK: GIS TECH DEM Loader
         public static void makeTerrain(String terrainPath, Vector2 elevationMinMax, Vector2 terrainDimension, MonoBehaviour gameClass)
