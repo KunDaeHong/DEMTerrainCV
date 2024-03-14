@@ -46,7 +46,7 @@ public class TerrainSet : MonoBehaviour
         // }
 
         // terrainData.SetHeights(0, 0, heightValues);
-        StartCoroutine(MapUtils.makeTerrain(HeightMap, terrainData));
+        // StartCoroutine(MapUtils.MapLoadUtils.makeTerrain(HeightMap, terrainData));
     }
 
     private void Start()
@@ -130,7 +130,7 @@ public class TerrainSet : MonoBehaviour
                 bottomL,
                 bottomR
             };
-            TileInfo mapTile = MapUtils.getTileListFromDEM(topL, topR, bottomL, bottomR);
+            TileInfo mapTile = MapUtils.MapLoadUtils.getTileListFromDEM(topL, topR, bottomL, bottomR);
             yield return StartCoroutine(getGoogleMapSatellite(mapTile));
 
             // plane을 지도 이미지로 변경
@@ -140,9 +140,9 @@ public class TerrainSet : MonoBehaviour
             planeRenderer.material = planeMapMaterial;
 
             //지도 타일 좌표를 유니티 좌표로 변환
-            Vector2 topLP = MapUtils.tileToPixel(mapTile, topL);
-            Vector2 bottomLP = MapUtils.tileToPixel(mapTile, bottomL);
-            Vector2 bottomRP = MapUtils.tileToPixel(mapTile, bottomR);
+            Vector2 topLP = MapUtils.MapLoadUtils.tileToPixel(mapTile, topL, 256);
+            Vector2 bottomLP = MapUtils.MapLoadUtils.tileToPixel(mapTile, bottomL, 256);
+            Vector2 bottomRP = MapUtils.MapLoadUtils.tileToPixel(mapTile, bottomR, 256);
             Rect tileImgPRect = new Rect(bottomLP.x, bottomLP.y, bottomRP.x - bottomLP.x, bottomLP.y - topLP.y);
             //Wgs84Info centerWgs84 = MapUtils.centerWithWgs84(wgs84Coords);
             //Vector2 centerP = MapUtils.tileToPixel(mapTile, centerWgs84);
@@ -210,10 +210,10 @@ public class TerrainSet : MonoBehaviour
     public void Terrain2DToMesh(Texture2D heightMap, Wgs84Info topL, Wgs84Info topR, Wgs84Info bottomL, Wgs84Info bottomR)
     {
         //wgs84좌표에 의해 사이즈가 결정됨.
-        TileInfo mapTile = MapUtils.getTileListFromDEM(topL, topR, bottomL, bottomR);
-        Vector2 topLP = MapUtils.tileToPixel(mapTile, topL);
-        Vector2 bottomLP = MapUtils.tileToPixel(mapTile, bottomL);
-        Vector2 bottomRP = MapUtils.tileToPixel(mapTile, bottomR);
+        TileInfo mapTile = MapUtils.MapLoadUtils.getTileListFromDEM(topL, topR, bottomL, bottomR);
+        Vector2 topLP = MapUtils.MapLoadUtils.tileToPixel(mapTile, topL, 256);
+        Vector2 bottomLP = MapUtils.MapLoadUtils.tileToPixel(mapTile, bottomL, 256);
+        Vector2 bottomRP = MapUtils.MapLoadUtils.tileToPixel(mapTile, bottomR, 256);
         Rect tileImgPRect = new Rect(bottomLP.x, bottomLP.y, bottomRP.x - bottomLP.x, bottomLP.y - topLP.y);
         int terrainWidth = (int)tileImgPRect.width;
         int terrainHeight = (int)tileImgPRect.height;

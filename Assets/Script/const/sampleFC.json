@@ -1,0 +1,24 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "facName": "sewer_pipe",
+        "address": "경기도 고양시 덕양구 덕수천1로 37",
+        "seaLevel": 30.0,
+        "curve": false,
+        "radius": null,
+        "groundType": "weak"
+      },
+      "geometry": {
+        "coordinates": [
+          [128.90483368957717, 35.13698070146444],
+          [128.9112126512037, 35.13692466667307],
+          [128.911340250178, 35.14170054677288]
+        ],
+        "type": "LineString"
+      }
+    }
+  ]
+}
