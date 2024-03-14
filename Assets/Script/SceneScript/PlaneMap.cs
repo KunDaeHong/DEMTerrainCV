@@ -23,18 +23,19 @@ public class PlaneMap : MonoBehaviour
         GameObject.Find("LoadingTitle").GetComponent<Text>().enabled = false;
     }
 
-    private void Update()
+    private async void Update()
     {
         if (Input.GetKey(KeyCode.Y))
         {
             if (!isLoadingMap)
             {
                 //왼쪽 위, 오른쪽 위, 왼쪽 하단, 오른쪽 하단
-                Texture2D result = getMapHighQuality(
+                Texture2D map = await getMapTexture2D(
                     new Wgs84Info(11.945088338330308, 108.41956416737673, 0),
                     new Wgs84Info(11.945088338330308, 108.42674728647341, 0),
                     new Wgs84Info(11.938431073223398, 108.41956416737673, 0),
-                    new Wgs84Info(11.938431073223398, 108.42674728647341, 0)).Result;
+                    new Wgs84Info(11.938431073223398, 108.42674728647341, 0)
+                );
 
                 //타일 한변의 길이 (m단위)
                 //float tileDist = MapUtils.MapLoadUtils.tileDist(new TileInfo(0, 0, 0)); //lat lon zoom 순
@@ -80,19 +81,33 @@ public class PlaneMap : MonoBehaviour
 
         TileInfo mapTile = MapUtils.MapLoadUtils.getTileListFromDEM(wgs84Coords[0], wgs84Coords[1], wgs84Coords[2], wgs84Coords[3]);
         List<TileInfo> tileList = MapUtils.MapLoadUtils.getTilesInTile(mapTile, mapTile.zoom + 4);
-        mapTileCnt = 1 << mapTile.zoom + 4;
+        mapTileCnt = 1 << (mapTile.zoom + 4 - mapTile.zoom);
 
         yield return getGoogleMapSatellite15(tileList, mapTileCnt);
         yield return "";
     }
 
+    async Task<Texture2D> getMapTexture2D(Wgs84Info topL, Wgs84Info topR, Wgs84Info bottomL, Wgs84Info bottomR)
+    {
+        StartCoroutine(getMapHighQuality(topL, topR, bottomL, bottomR));
+
+        await Task.Run(async () =>
+        {
+            while (mapMainTexture == null)
+            {
+                await Task.Delay(500);
+                // 필요한 작업을 수행합니다.
+                Debug.Log("waiting");
+            }
+        });
+
+        return mapMainTexture;
+    }
+
     //고화질 맵을 Texture2D로 반환
-    async Task<Texture2D> getMapHighQuality(Wgs84Info topL, Wgs84Info topR, Wgs84Info bottomL, Wgs84Info bottomR)
+    IEnumerator getMapHighQuality(Wgs84Info topL, Wgs84Info topR, Wgs84Info bottomL, Wgs84Info bottomR)
     {
         isLoadingMap = true;
-        GameObject.Find("LoadingTitleBar").GetComponent<Image>().enabled = true;
-        GameObject.Find("LoadingTitle").GetComponent<Text>().enabled = true;
-
         try
         {
             //Vietnam VDC
@@ -106,13 +121,7 @@ public class PlaneMap : MonoBehaviour
                 bottomR: bottomR
             );
 
-            IEnumerator enumerator = loadMapHighQuality(new MapDemVO[] { roadDem });
-
-            while (enumerator.MoveNext())
-            {
-                var enu = enumerator.Current;
-                await Task.Yield(); // 다음 반복을 기다립니다.
-            }
+            yield return loadMapHighQuality(new MapDemVO[] { roadDem });
 
             int mapSize = 256 * mapTileCnt;
             mapMainTexture = CVUtils.resizeTexture2D(mapMainTexture, mapSize, mapSize);
@@ -125,11 +134,9 @@ public class PlaneMap : MonoBehaviour
         finally
         {
             isLoadingMap = false;
-            GameObject.Find("LoadingTitleBar").GetComponent<Image>().enabled = false;
-            GameObject.Find("LoadingTitle").GetComponent<Text>().enabled = false;
         }
 
-        return mapMainTexture;
+        yield return mapMainTexture;
     }
 
     // getGoogleMapSession
