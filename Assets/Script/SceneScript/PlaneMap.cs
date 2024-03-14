@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.IO;
 
 using UnityEngine;
 using UnityEngine.UI;
@@ -122,6 +123,16 @@ public class PlaneMap : MonoBehaviour
 
             yield return loadMapHighQuality(new MapDemVO[] { roadDem });
 
+            // string directoryPath = @Application.streamingAssetsPath + "/tileImage/";
+            // if (Directory.Exists(directoryPath) == false)
+            // {
+            //     Directory.CreateDirectory(directoryPath);
+            // }
+
+            // var pngData = mapMainTexture.EncodeToJPG();
+            // var path = @Application.streamingAssetsPath + "/tileImage/" + "background" + ".jpg";
+            // File.WriteAllBytes(path, pngData);
+
             int mapSize = 256 * mapTileCnt;
             mapResizeTexture = CVUtils.resizeTexture2D(mapMainTexture, mapSize, mapSize);
 
@@ -200,17 +211,17 @@ public class PlaneMap : MonoBehaviour
 
     private IEnumerator getGoogleMapSatellite15(List<TileInfo> tileList, int tileXWay)
     {
-        if (Convert.ToInt64(DateTimeOffset.UtcNow.ToUnixTimeSeconds()) > Const.Shared.g_sessionExpired + 30)
-        {
-            Task getSessionKeyTask = getGoogleMapSession();
-            yield return new WaitUntil(() => getSessionKeyTask.IsCompleted);
-        }
+        // if (Convert.ToInt64(DateTimeOffset.UtcNow.ToUnixTimeSeconds()) > Const.Shared.g_sessionExpired + 30)
+        // {
+        //     Task getSessionKeyTask = getGoogleMapSession();
+        //     yield return new WaitUntil(() => getSessionKeyTask.IsCompleted);
+        // }
 
-        var tileQueryDict = new Dictionary<string, string> {
-                {"session", Const.Shared.Google_Session_key},
-                {"key", Const.Google_API}
-        };
-        string query = NetworkVO.queryParameterMaker(tileQueryDict);
+        // var tileQueryDict = new Dictionary<string, string> {
+        //         {"session", Const.Shared.Google_Session_key},
+        //         {"key", Const.Google_API}
+        // };
+        // string query = NetworkVO.queryParameterMaker(tileQueryDict);
         List<Texture2D> textures = new List<Texture2D>();
 
         foreach (var tile in tileList)
@@ -233,6 +244,7 @@ public class PlaneMap : MonoBehaviour
         }
 
         mapMainTexture = mergeTexture(textures, tileXWay);
+
         yield return "";
     }
     // Sprite를 사각형의 틀에 맞게 크롭하는 함수
@@ -256,7 +268,7 @@ public class PlaneMap : MonoBehaviour
         int xSize = tileXWay * 256;
         Texture2D mapTexture = new Texture2D(xSize, xSize);
         Vector2 pivot = new Vector2(0.5f, 0.5f);
-        Vector2 textureSize = new Vector2(0, 4096f);
+        Vector2 textureSize = new Vector2(0, tileXWay * 256);
 
         mapTexture.Apply(true, false);
 
