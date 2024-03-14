@@ -97,8 +97,6 @@ public class PlaneMap : MonoBehaviour
             while (mapResizeTexture == null)
             {
                 await Task.Delay(500);
-                // 필요한 작업을 수행합니다.
-                Debug.Log("waiting");
             }
         });
 
