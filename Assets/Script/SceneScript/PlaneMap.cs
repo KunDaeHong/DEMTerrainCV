@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-//using System.IO;
+using System.IO;
 
 using UnityEngine;
 using UnityEngine.UI;
@@ -82,6 +82,7 @@ public class PlaneMap : MonoBehaviour
             {
                 //StartCoroutine(loadMap(demVOs));
                 StartCoroutine(loadMapHighQuality(demVOs));
+                //StartCoroutine(testVietnam());
             }
         }
     }
@@ -129,7 +130,7 @@ public class PlaneMap : MonoBehaviour
     void Test()
     {
         //TODO: Test code (sewer)
-        StartCoroutine(makeSewer(new TileInfo(1620, 3514, 12), 2048));
+        //StartCoroutine(makeSewer(new TileInfo(1620, 3514, 12), 2048));
     }
 
     // StartAsync 
@@ -189,8 +190,8 @@ public class PlaneMap : MonoBehaviour
             };
 
             TileInfo mapTile = MapUtils.MapLoadUtils.getTileListFromDEM(wgs84Coords[0], wgs84Coords[1], wgs84Coords[2], wgs84Coords[3]);
-            List<TileInfo> tileList = MapUtils.MapLoadUtils.getTilesInTile(mapTile);
-            int zoomDiff = 15 - mapTile.zoom;
+            List<TileInfo> tileList = MapUtils.MapLoadUtils.getTilesInTile(mapTile, mapTile.zoom + 3);
+            int zoomDiff = 3;
             mapTileCnt = 1 << zoomDiff;
 
             yield return getGoogleMapSatellite15(tileList, mapTileCnt);
@@ -203,7 +204,7 @@ public class PlaneMap : MonoBehaviour
             planeMapMaterial.mainTexture = mapMainTexture;
             Renderer planeRenderer = GetComponent<Renderer>();
             planeRenderer.material = planeMapMaterial;
-            StartCoroutine(makeDEMTerrain(mapDemVOs));
+            //StartCoroutine(makeDEMTerrain(mapDemVOs));
         }
         finally
         {
@@ -221,7 +222,8 @@ public class PlaneMap : MonoBehaviour
         string api_url = $"{APIConst.google_session_api}?{query}";
         Dictionary<string, string> data = new Dictionary<string, string>()
         {
-            {"mapType", "satellite"},
+            //{"mapType", "satellite"},
+            {"mapType", "roadmap"},
             {"language", "en-US"},
             {"region", "US"}
         };
@@ -289,12 +291,13 @@ public class PlaneMap : MonoBehaviour
         foreach (var tile in tileList)
         {
             string api_url = $"{APIConst.google_map_api}/{tile.zoom}/{tile.lon}/{tile.lat}?{query}";
+            //string api_url = $"{APIConst.map4d_tms_map_api}/{tile.zoom}/{tile.lon}/{tile.lat}.png";
             byte[] receivedByteArr = new byte[0];
 
             Task<byte[]> task = NetworkVO.reqAPI<byte[]>(api_url, NetworkEnum.GET);
             yield return new WaitUntil(() => task.IsCompleted);
 
-            Debug.Log($"{APIConst.google_map_api}/{tile.zoom}/{tile.lon}/{tile.lat}?{query}");
+            Debug.Log($"{api_url}");
 
             receivedByteArr = task.Result;
             Texture2D bmp = new Texture2D(8, 8);
@@ -302,6 +305,12 @@ public class PlaneMap : MonoBehaviour
 
             bmp.LoadImage(receivedByteArr);
             Rect tRect = new Rect(0, 0, bmp.width, bmp.height);
+
+            if (bmp.width > 256 && bmp.height > 256)
+            {
+                bmp = CVUtils.resizeTexture2D(bmp, 256, 256);
+            }
+
             textures.Add(bmp);
         }
 
@@ -313,7 +322,7 @@ public class PlaneMap : MonoBehaviour
         //     Directory.CreateDirectory(directoryPath);
         // }
 
-        // var pngData = mapSprite.texture.EncodeToJPG();
+        // var pngData = mapMainTexture.EncodeToJPG();
         // var path = @Application.streamingAssetsPath + "/tileImage/" + "background" + ".jpg";
         // File.WriteAllBytes(path, pngData);
         yield return "";
@@ -324,9 +333,8 @@ public class PlaneMap : MonoBehaviour
 
         foreach (var mapDem in mapDemVOs)
         {
-
-            //yield return new WaitUntil(() => MapUtils.MapLoadUtils.isLoadingDEM == false);
-            //yield return MapUtils.MapLoadUtils.makeDEM(mapDem, this);
+            yield return new WaitUntil(() => MapUtils.MapLoadUtils.isLoadingDEM == false);
+            yield return MapUtils.MapLoadUtils.makeDEM(mapDem, this);
             // MapUtils.makeTerrain(
             //     mapDem.demPath,
             //     mapDem.elevationMinMax,
@@ -425,7 +433,7 @@ public class PlaneMap : MonoBehaviour
         int xSize = tileXWay * 256;
         Texture2D mapTexture = new Texture2D(xSize, xSize);
         Vector2 pivot = new Vector2(0.5f, 0.5f);
-        Vector2 textureSize = new Vector2(0, 2048f);
+        Vector2 textureSize = new Vector2(0, tileXWay * 256);
 
         mapTexture.Apply(true, false);
 

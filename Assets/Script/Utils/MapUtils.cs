@@ -53,18 +53,18 @@ namespace MapUtils
 
         //This function returns every 19 level tiles image in tile number
         //
-        public static List<TileInfo> getTilesInTile(TileInfo tileInfo)
+        public static List<TileInfo> getTilesInTile(TileInfo tileInfo, int maxZoom)
         {
             int lon = tileInfo.lon;
             int lat = tileInfo.lat;
             int zoom = tileInfo.zoom;
 
-            if (zoom >= 15)
+            if (zoom >= maxZoom)
             {
                 throw new Exception("The maximum size for Google Maps stellite images is 19 level. But We using 15 level maps.");
             }
 
-            int zoomDiff = 15 - zoom;
+            int zoomDiff = maxZoom - zoom;
             int zoomMultiples = 1 << zoomDiff;
 
             int nLon = lon * zoomMultiples;
@@ -76,7 +76,7 @@ namespace MapUtils
             {
                 for (int x = 0; x < zoomMultiples; x++)
                 {
-                    TileInfo newTile = new TileInfo(nLat + y, nLon + x, 15);
+                    TileInfo newTile = new TileInfo(nLat + y, nLon + x, maxZoom);
                     tileList.Add(newTile);
                 }
             }
@@ -176,6 +176,42 @@ namespace MapUtils
             Debug.Log("finish with pixel coordinate");
             return new Vector2(pXN, pYN);
         }
+
+        public static float tileDist(TileInfo tileCoord)
+        {
+            // Earth Radius
+            double earthR = 6371e3;
+
+            //Tile WGS84 Coordinate
+            //It will returns the coordinate of the upper left point.
+            double merX = tileCoord.lon / Math.Pow(2, tileCoord.zoom) * 360 - 180;
+            double merY = Math.Atan(Math.Sinh(Math.PI * (1 - 2 * tileCoord.lat / Math.Pow(2, tileCoord.zoom)))) * 180 / Math.PI;
+            //It will returns the coordinate of the bottom left point.
+            double merYB = Math.Atan(Math.Sinh(Math.PI * (1 - 2 * (tileCoord.lat + 1) / Math.Pow(2, tileCoord.zoom)))) * 180 / Math.PI;
+
+            //Radian
+            float lat2 = (float)((merY * Math.PI) / 180); // merY lat
+            float lat3 = (float)((merYB * Math.PI) / 180); // merYB lat
+            float lonCosSame = (float)((merX - merX) * Math.PI / 180); // merX lon cos Radian
+            float merYBDist = (float)(Math.Acos(Math.Sin(lat3) * Math.Sin(lat2) + Math.Cos(lat3) * Math.Cos(lat2) * Math.Cos(lonCosSame)) * earthR);
+
+            return merYBDist;
+        }
+
+        public static float wgs84Dist(Wgs84Info fP, Wgs84Info lP)
+        {
+            // Earth Radius
+            double earthR = 6371e3;
+
+            float lat1 = (float)((lP.lat * Math.PI) / 180);
+            float lat2 = (float)((fP.lat * Math.PI) / 180);
+            float lonCos = (float)((fP.lon - lP.lon) * Math.PI / 180);
+
+            float dist = (float)(Math.Acos(Math.Sin(lat2) * Math.Sin(lat1) + Math.Cos(lat2) * Math.Cos(lat1) * Math.Cos(lonCos)) * earthR);
+
+            return dist;
+        }
+
 
         public static TileInfo wgs84ToTile(double lon, double lat, int zoom, bool google = false)
         {
