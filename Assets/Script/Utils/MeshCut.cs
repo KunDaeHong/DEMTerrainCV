@@ -192,6 +192,132 @@ public class MeshCut
         return gameObjects;
     }
 
+    public static void cutObject(GameObject victim, Vector3 anchorPoint, Vector3 normalDirection, Material capMaterial, bool rightSide, bool leftSide)
+    {
+
+        victim_transform = victim.transform;
+
+        blade = new Plane(victim.transform.InverseTransformDirection(normalDirection),
+                          victim.transform.InverseTransformPoint(anchorPoint));
+#if UNITY_EDITOR
+        victim_mesh = victim.GetComponent<MeshFilter>().sharedMesh;
+        victim_mesh.subMeshCount = 2;
+#else
+        victim_mesh = victim.GetComponent<MeshFilter>().mesh;
+        victim_mesh.subMeshCount = 2;
+#endif
+
+        ResetGatheringValues();
+
+
+        int p1 = 0;
+        int p2 = 0;
+        int p3 = 0;
+
+        sides = new bool[3];
+
+        int sub = 0;
+        int[] indices = victim_mesh.triangles;
+        int[] secondIndices = victim_mesh.GetIndices(1);
+
+        for (int i = 0; i < indices.Length; i += 3)
+        {
+
+            p1 = indices[i];
+            p2 = indices[i + 1];
+            p3 = indices[i + 2];
+
+            sides[0] = blade.GetSide(victim_mesh.vertices[p1]);
+            sides[1] = blade.GetSide(victim_mesh.vertices[p2]);
+            sides[2] = blade.GetSide(victim_mesh.vertices[p3]);
+
+
+            sub = 0;
+            for (int k = 0; k < secondIndices.Length; k++)
+            {
+                if (secondIndices[k] == p1)
+                {
+                    sub = 1;
+                    break;
+                }
+            }
+
+
+            if (sides[0] == sides[1] && sides[0] == sides[2])
+            { // whole face
+
+                if (sides[0])
+                { // left side
+                    left_Gather_subIndices[sub].Add(p1);
+                    left_Gather_subIndices[sub].Add(p2);
+                    left_Gather_subIndices[sub].Add(p3);
+
+                }
+                else
+                {
+
+                    right_Gather_subIndices[sub].Add(p1);
+                    right_Gather_subIndices[sub].Add(p2);
+                    right_Gather_subIndices[sub].Add(p3);
+
+                }
+
+            }
+            else
+            { // cut face
+                ResetFaceCuttingTemps();
+                Cut_this_Face(sub, p1, p2, p3);
+            }
+        }
+
+
+        // set final arrays
+        ResetFinalArrays();
+        SetFinalArrays_withOriginals();
+        AddNewTriangles_toFinalArrays();
+        MakeCaps();
+
+        Mesh left_HalfMesh = new Mesh();
+        left_HalfMesh.name = "Split Mesh Left";
+        left_HalfMesh.vertices = left_Final_vertices.ToArray();
+
+        left_HalfMesh.subMeshCount = 2;
+        left_HalfMesh.SetIndices(left_Final_subIndices[0].ToArray(), MeshTopology.Triangles, 0);
+        left_HalfMesh.SetIndices(left_Final_subIndices[1].ToArray(), MeshTopology.Triangles, 1);
+
+        left_HalfMesh.normals = left_Final_normals.ToArray();
+        left_HalfMesh.uv = left_Final_uvs.ToArray();
+
+
+        Mesh right_HalfMesh = new Mesh();
+        right_HalfMesh.name = "Split Mesh Right";
+        right_HalfMesh.vertices = right_Final_vertices.ToArray();
+
+        right_HalfMesh.subMeshCount = 2;
+        right_HalfMesh.SetIndices(right_Final_subIndices[0].ToArray(), MeshTopology.Triangles, 0);
+        right_HalfMesh.SetIndices(right_Final_subIndices[1].ToArray(), MeshTopology.Triangles, 1);
+
+        right_HalfMesh.normals = right_Final_normals.ToArray();
+        right_HalfMesh.uv = right_Final_uvs.ToArray();
+
+
+
+        // Material[] mats = new Material[] { victim.GetComponent<MeshRenderer>().material, capMaterial };
+        Material[] mats = new Material[] { capMaterial };
+
+        if (leftSide)
+        {
+            victim.GetComponent<MeshFilter>().mesh = left_HalfMesh;
+            victim.GetComponent<MeshRenderer>().materials = mats;
+        }
+
+        if (rightSide)
+        {
+            victim.GetComponent<MeshFilter>().mesh = right_HalfMesh;
+            victim.GetComponent<MeshRenderer>().materials = mats;
+        }
+    }
+
     static void ResetGatheringValues()
     {
 

@@ -7,6 +7,7 @@ using System.IO;
 using GISTech.GISTerrainLoader;
 
 using UnityEngine;
+using UnityEngine.Tilemaps;
 
 namespace MapUtils
 {
@@ -81,6 +82,22 @@ namespace MapUtils
             }
 
             return tileList;
+        }
+
+        public static List<TileInfo> getTilesWithNum(TileInfo startTile, TileInfo endTile)
+        {
+            List<TileInfo> tiles = new List<TileInfo>();
+
+            for (int y = startTile.lat; y < endTile.lat; y++)
+            {
+                for (int x = startTile.lon; x < endTile.lon; x++)
+                {
+                    TileInfo newTile = new TileInfo(y, x, startTile.zoom);
+                    tiles.Add(newTile);
+                }
+            }
+
+            return tiles;
         }
 
         // This function returns the NW-Corner of the tile.
@@ -160,7 +177,7 @@ namespace MapUtils
             return new Vector2(pXN, pYN);
         }
 
-        public static TileInfo wgs84ToTile(double lon, double lat, int zoom)
+        public static TileInfo wgs84ToTile(double lon, double lat, int zoom, bool google = false)
         {
             double latRad = lat * ((float)Math.PI / 180f);
             int zoomN = 1 << zoom;
@@ -192,6 +209,21 @@ namespace MapUtils
             tileInfo.lat = latTileNum;
             tileInfo.lon = lonTileNum;
             tileInfo.zoom = zoom;
+
+            if (google)
+            {
+                int zoomG = (1 << zoom) - 1;
+                tileInfo.lat = zoomG - tileInfo.lat;
+            }
+
+            return tileInfo;
+        }
+
+        public static TileInfo googleTileToTMS(TileInfo googleF)
+        {
+            TileInfo tileInfo = googleF;
+            int zoomG = (1 << tileInfo.zoom) + 1;
+            tileInfo.lat = zoomG - tileInfo.lat;
 
             return tileInfo;
         }
@@ -376,11 +408,12 @@ namespace MapUtils
         }
 
 
-        public static IEnumerator makePipe() {
-            
+        public static IEnumerator makePipe()
+        {
+
             yield return "";
         }
-    }   
+    }
 }
 
 public class YieldCollection : CustomYieldInstruction
