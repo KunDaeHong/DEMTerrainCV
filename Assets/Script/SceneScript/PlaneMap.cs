@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-//using System.IO;
+using System.IO;
 
 using UnityEngine;
 using UnityEngine.UI;
@@ -81,7 +81,8 @@ public class PlaneMap : MonoBehaviour
             if (!isLoadingMap)
             {
                 //StartCoroutine(loadMap(demVOs));
-                StartCoroutine(loadMapHighQuality(demVOs));
+                //StartCoroutine(loadMapHighQuality(demVOs));
+                StartCoroutine(testVietnam());
             }
         }
     }
@@ -129,7 +130,28 @@ public class PlaneMap : MonoBehaviour
     void Test()
     {
         //TODO: Test code (sewer)
-        StartCoroutine(makeSewer(new TileInfo(1620, 3514, 12), 2048));
+        //StartCoroutine(makeSewer(new TileInfo(1620, 3514, 12), 2048));
+    }
+
+    IEnumerator testVietnam()
+    {
+        TileInfo test = MapUtils.MapLoadUtils.wgs84ToTile(108.42384383957932, 11.942521609709871, 15, false);
+        Vector2 test2 = MapUtils.MapLoadUtils.tileToPixel(test, new Wgs84Info(11.942521609709871, 108.42384383957932, 15), 2048);
+
+        int zoomDiff = 19 - test.zoom;
+        mapTileCnt = 1 << zoomDiff;
+        List<TileInfo> tileList = MapUtils.MapLoadUtils.getTilesInTile(test, 19);
+
+        yield return getGoogleMapSatellite15(tileList, mapTileCnt);
+        yield return "";
+
+        // plane을 지도 이미지로 변경
+        int mapSize = 256 * mapTileCnt;
+        mapMainTexture = CVUtils.resizeTexture2D(mapMainTexture, mapSize, mapSize);
+        Material planeMapMaterial = new Material(Shader.Find("Standard"));
+        planeMapMaterial.mainTexture = mapMainTexture;
+        Renderer planeRenderer = GetComponent<Renderer>();
+        planeRenderer.material = planeMapMaterial;
     }
 
     // StartAsync 
@@ -189,7 +211,7 @@ public class PlaneMap : MonoBehaviour
             };
 
             TileInfo mapTile = MapUtils.MapLoadUtils.getTileListFromDEM(wgs84Coords[0], wgs84Coords[1], wgs84Coords[2], wgs84Coords[3]);
-            List<TileInfo> tileList = MapUtils.MapLoadUtils.getTilesInTile(mapTile);
+            List<TileInfo> tileList = MapUtils.MapLoadUtils.getTilesInTile(mapTile, 15);
             int zoomDiff = 15 - mapTile.zoom;
             mapTileCnt = 1 << zoomDiff;
 
@@ -203,7 +225,7 @@ public class PlaneMap : MonoBehaviour
             planeMapMaterial.mainTexture = mapMainTexture;
             Renderer planeRenderer = GetComponent<Renderer>();
             planeRenderer.material = planeMapMaterial;
-            StartCoroutine(makeDEMTerrain(mapDemVOs));
+            //StartCoroutine(makeDEMTerrain(mapDemVOs));
         }
         finally
         {
@@ -288,13 +310,14 @@ public class PlaneMap : MonoBehaviour
 
         foreach (var tile in tileList)
         {
-            string api_url = $"{APIConst.google_map_api}/{tile.zoom}/{tile.lon}/{tile.lat}?{query}";
+            //string api_url = $"{APIConst.google_map_api}/{tile.zoom}/{tile.lon}/{tile.lat}?{query}";
+            string api_url = $"{APIConst.map4d_tms_map_api}/{tile.zoom}/{tile.lon}/{tile.lat}.png";
             byte[] receivedByteArr = new byte[0];
 
             Task<byte[]> task = NetworkVO.reqAPI<byte[]>(api_url, NetworkEnum.GET);
             yield return new WaitUntil(() => task.IsCompleted);
 
-            Debug.Log($"{APIConst.google_map_api}/{tile.zoom}/{tile.lon}/{tile.lat}?{query}");
+            Debug.Log($"{api_url}");
 
             receivedByteArr = task.Result;
             Texture2D bmp = new Texture2D(8, 8);
@@ -313,7 +336,7 @@ public class PlaneMap : MonoBehaviour
         //     Directory.CreateDirectory(directoryPath);
         // }
 
-        // var pngData = mapSprite.texture.EncodeToJPG();
+        // var pngData = mapMainTexture.EncodeToJPG();
         // var path = @Application.streamingAssetsPath + "/tileImage/" + "background" + ".jpg";
         // File.WriteAllBytes(path, pngData);
         yield return "";
@@ -425,7 +448,7 @@ public class PlaneMap : MonoBehaviour
         int xSize = tileXWay * 256;
         Texture2D mapTexture = new Texture2D(xSize, xSize);
         Vector2 pivot = new Vector2(0.5f, 0.5f);
-        Vector2 textureSize = new Vector2(0, 2048f);
+        Vector2 textureSize = new Vector2(0, 4096f);
 
         mapTexture.Apply(true, false);
 
