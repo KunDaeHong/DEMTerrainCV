@@ -211,17 +211,6 @@ public class PlaneMap : MonoBehaviour
 
     private IEnumerator getGoogleMapSatellite15(List<TileInfo> tileList, int tileXWay)
     {
-        // if (Convert.ToInt64(DateTimeOffset.UtcNow.ToUnixTimeSeconds()) > Const.Shared.g_sessionExpired + 30)
-        // {
-        //     Task getSessionKeyTask = getGoogleMapSession();
-        //     yield return new WaitUntil(() => getSessionKeyTask.IsCompleted);
-        // }
-
-        // var tileQueryDict = new Dictionary<string, string> {
-        //         {"session", Const.Shared.Google_Session_key},
-        //         {"key", Const.Google_API}
-        // };
-        // string query = NetworkVO.queryParameterMaker(tileQueryDict);
         List<Texture2D> textures = new List<Texture2D>();
 
         foreach (var tile in tileList)
@@ -240,6 +229,12 @@ public class PlaneMap : MonoBehaviour
 
             bmp.LoadImage(receivedByteArr);
             Rect tRect = new Rect(0, 0, bmp.width, bmp.height);
+
+            if (bmp.width > 256 && bmp.height > 256)
+            {
+                bmp = CVUtils.resizeTexture2D(bmp, 256, 256);
+            }
+
             textures.Add(bmp);
         }
 
