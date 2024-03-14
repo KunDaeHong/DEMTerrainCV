@@ -14,6 +14,7 @@ public class PlaneMap : MonoBehaviour
     [SerializeField]
     private Camera mainCam;
     private Texture2D mapMainTexture;
+    private Texture2D mapResizeTexture;
     private bool isLoadingMap = false;
     private int mapTileCnt = 0;
 
@@ -93,7 +94,7 @@ public class PlaneMap : MonoBehaviour
 
         await Task.Run(async () =>
         {
-            while (mapMainTexture == null)
+            while (mapResizeTexture == null)
             {
                 await Task.Delay(500);
                 // 필요한 작업을 수행합니다.
@@ -101,7 +102,7 @@ public class PlaneMap : MonoBehaviour
             }
         });
 
-        return mapMainTexture;
+        return mapResizeTexture;
     }
 
     //고화질 맵을 Texture2D로 반환
@@ -124,19 +125,19 @@ public class PlaneMap : MonoBehaviour
             yield return loadMapHighQuality(new MapDemVO[] { roadDem });
 
             int mapSize = 256 * mapTileCnt;
-            mapMainTexture = CVUtils.resizeTexture2D(mapMainTexture, mapSize, mapSize);
+            mapResizeTexture = CVUtils.resizeTexture2D(mapMainTexture, mapSize, mapSize);
 
-            // Material planeMapMaterial = new Material(Shader.Find("Standard"));
-            // planeMapMaterial.mainTexture = mapMainTexture;
-            // Renderer planeRenderer = GetComponent<Renderer>();
-            // planeRenderer.material = planeMapMaterial;
+            Material planeMapMaterial = new Material(Shader.Find("Standard"));
+            planeMapMaterial.mainTexture = mapResizeTexture;
+            Renderer planeRenderer = GetComponent<Renderer>();
+            planeRenderer.material = planeMapMaterial;
         }
         finally
         {
             isLoadingMap = false;
         }
 
-        yield return mapMainTexture;
+        yield return mapResizeTexture;
     }
 
     // getGoogleMapSession
