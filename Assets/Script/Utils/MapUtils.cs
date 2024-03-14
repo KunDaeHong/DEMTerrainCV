@@ -7,6 +7,7 @@ using System.IO;
 using GISTech.GISTerrainLoader;
 
 using UnityEngine;
+using UnityEngine.Tilemaps;
 
 namespace MapUtils
 {
@@ -89,8 +90,14 @@ namespace MapUtils
 
             for (int y = startTile.lat; y < endTile.lat; y++)
             {
-
+                for (int x = startTile.lon; x < endTile.lon; x++)
+                {
+                    TileInfo newTile = new TileInfo(y, x, startTile.zoom);
+                    tiles.Add(newTile);
+                }
             }
+
+            return tiles;
         }
 
         // This function returns the NW-Corner of the tile.
