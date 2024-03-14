@@ -29,11 +29,17 @@ public class PlaneMap : MonoBehaviour
         {
             if (!isLoadingMap)
             {
+                //왼쪽 위, 오른쪽 위, 왼쪽 하단, 오른쪽 하단
                 Texture2D result = getMapHighQuality(
-                    new Wgs84Info(0, 0, 0),
-                    new Wgs84Info(0, 0, 0),
-                    new Wgs84Info(0, 0, 0),
-                    new Wgs84Info(0, 0, 0)).Result;
+                    new Wgs84Info(11.945088338330308, 108.41956416737673, 0),
+                    new Wgs84Info(11.945088338330308, 108.42674728647341, 0),
+                    new Wgs84Info(11.938431073223398, 108.41956416737673, 0),
+                    new Wgs84Info(11.938431073223398, 108.42674728647341, 0)).Result;
+
+                //타일 한변의 길이 (m단위)
+                //float tileDist = MapUtils.MapLoadUtils.tileDist(new TileInfo(0, 0, 0)); //lat lon zoom 순
+                //Wgs84거리 측정 (m단위)
+                //float wgs84Dist = MapUtils.MapLoadUtils.wgs84Dist(new Wgs84Info(0, 0, 0), new Wgs84Info(0, 0, 0)); //Wgs84Info lat lon zoom 순
             }
         }
     }
@@ -73,11 +79,11 @@ public class PlaneMap : MonoBehaviour
             };
 
         TileInfo mapTile = MapUtils.MapLoadUtils.getTileListFromDEM(wgs84Coords[0], wgs84Coords[1], wgs84Coords[2], wgs84Coords[3]);
-        List<TileInfo> tileList = MapUtils.MapLoadUtils.getTilesInTile(mapTile, 15);
-        int zoomDiff = 15 - mapTile.zoom;
-        mapTileCnt = 1 << zoomDiff;
+        List<TileInfo> tileList = MapUtils.MapLoadUtils.getTilesInTile(mapTile, mapTile.zoom + 4);
+        mapTileCnt = 1 << mapTile.zoom + 4;
 
         yield return getGoogleMapSatellite15(tileList, mapTileCnt);
+        yield return "";
     }
 
     //고화질 맵을 Texture2D로 반환
@@ -100,7 +106,13 @@ public class PlaneMap : MonoBehaviour
                 bottomR: bottomR
             );
 
-            await Task.FromResult(loadMapHighQuality(new MapDemVO[] { roadDem }));
+            IEnumerator enumerator = loadMapHighQuality(new MapDemVO[] { roadDem });
+
+            while (enumerator.MoveNext())
+            {
+                var enu = enumerator.Current;
+                await Task.Yield(); // 다음 반복을 기다립니다.
+            }
 
             int mapSize = 256 * mapTileCnt;
             mapMainTexture = CVUtils.resizeTexture2D(mapMainTexture, mapSize, mapSize);
