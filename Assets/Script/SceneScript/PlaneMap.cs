@@ -133,27 +133,6 @@ public class PlaneMap : MonoBehaviour
         //StartCoroutine(makeSewer(new TileInfo(1620, 3514, 12), 2048));
     }
 
-    IEnumerator testVietnam()
-    {
-        TileInfo test = MapUtils.MapLoadUtils.wgs84ToTile(108.42384383957932, 11.942521609709871, 15, false);
-        Vector2 test2 = MapUtils.MapLoadUtils.tileToPixel(test, new Wgs84Info(11.942521609709871, 108.42384383957932, 15), 2048);
-
-        int zoomDiff = 19 - test.zoom;
-        mapTileCnt = 1 << zoomDiff;
-        List<TileInfo> tileList = MapUtils.MapLoadUtils.getTilesInTile(test, 19);
-
-        yield return getGoogleMapSatellite15(tileList, mapTileCnt);
-        yield return "";
-
-        // plane을 지도 이미지로 변경
-        int mapSize = 256 * mapTileCnt;
-        mapMainTexture = CVUtils.resizeTexture2D(mapMainTexture, mapSize, mapSize);
-        Material planeMapMaterial = new Material(Shader.Find("Standard"));
-        planeMapMaterial.mainTexture = mapMainTexture;
-        Renderer planeRenderer = GetComponent<Renderer>();
-        planeRenderer.material = planeMapMaterial;
-    }
-
     // StartAsync 
     // 
     // 구글맵을 사용하기 위해 세션키를 미리 받을 수 있도록 만든 비동기 함수입니다.
@@ -211,8 +190,8 @@ public class PlaneMap : MonoBehaviour
             };
 
             TileInfo mapTile = MapUtils.MapLoadUtils.getTileListFromDEM(wgs84Coords[0], wgs84Coords[1], wgs84Coords[2], wgs84Coords[3]);
-            List<TileInfo> tileList = MapUtils.MapLoadUtils.getTilesInTile(mapTile, 15);
-            int zoomDiff = 15 - mapTile.zoom;
+            List<TileInfo> tileList = MapUtils.MapLoadUtils.getTilesInTile(mapTile, mapTile.zoom + 3);
+            int zoomDiff = 3;
             mapTileCnt = 1 << zoomDiff;
 
             yield return getGoogleMapSatellite15(tileList, mapTileCnt);
@@ -326,6 +305,12 @@ public class PlaneMap : MonoBehaviour
 
             bmp.LoadImage(receivedByteArr);
             Rect tRect = new Rect(0, 0, bmp.width, bmp.height);
+
+            if (bmp.width > 256 && bmp.height > 256)
+            {
+                bmp = CVUtils.resizeTexture2D(bmp, 256, 256);
+            }
+
             textures.Add(bmp);
         }
 
@@ -348,9 +333,8 @@ public class PlaneMap : MonoBehaviour
 
         foreach (var mapDem in mapDemVOs)
         {
-
-            //yield return new WaitUntil(() => MapUtils.MapLoadUtils.isLoadingDEM == false);
-            //yield return MapUtils.MapLoadUtils.makeDEM(mapDem, this);
+            yield return new WaitUntil(() => MapUtils.MapLoadUtils.isLoadingDEM == false);
+            yield return MapUtils.MapLoadUtils.makeDEM(mapDem, this);
             // MapUtils.makeTerrain(
             //     mapDem.demPath,
             //     mapDem.elevationMinMax,
