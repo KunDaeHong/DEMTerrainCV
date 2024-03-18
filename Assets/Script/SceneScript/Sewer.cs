@@ -33,8 +33,8 @@ public class Sewer : MonoBehaviour
 
         자르는 시작점은 항상 가장 자리 꼭짓점 이여야 함.
         **/
-        setSewerObj(SewerPoint.topLeft, 90f, 20f);
-        //qsetSewerObj(SewerPoint.topRight, 90f, 45f);
+        //setSewerObj(SewerPoint.topLeft, 90f, 20f);
+        setSewerObj(SewerPoint.bottomRight, 90f, 45f);
         // setSewerObj(SewerPoint.topRight, 90f, 30f);
     }
 
@@ -68,17 +68,17 @@ public class Sewer : MonoBehaviour
                 MeshCut.cut(pipe, cutPoint, dirVec, stdMtl, false, true);
                 break;
             case SewerPoint.bottomLeft:
-                cutPoint.x = pipe.transform.position.x + (pipe.transform.localScale.x / 2);
+                cutPoint.x = pipe.transform.position.x - (pipe.transform.localScale.x / 2);
                 cutPoint.y = pipe.transform.position.y;
                 cutPoint.z = pipe.transform.position.z - pipe.transform.localScale.y;
                 dirVec = new Vector3(degree / 100 / pipeLengthUnity, 0, -0.9f);
                 MeshCut.cut(pipe, cutPoint, dirVec, stdMtl, true, false);
                 break;
             case SewerPoint.bottomRight:
-                cutPoint.x = pipe.transform.position.x - (pipe.transform.localScale.x / 2);
+                cutPoint.x = pipe.transform.position.x + (pipe.transform.localScale.x / 2);
                 cutPoint.y = pipe.transform.position.y;
                 cutPoint.z = pipe.transform.position.z - pipe.transform.localScale.y;
-                dirVec = new Vector3(degree / 100 / pipeLengthUnity, 0, -0.9f);
+                dirVec = new Vector3(-(degree / 100) / pipeLengthUnity, 0, -0.9f);
                 MeshCut.cut(pipe, cutPoint, dirVec, stdMtl, true, false);
                 break;
             default:

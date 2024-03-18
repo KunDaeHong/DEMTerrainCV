@@ -7,7 +7,6 @@ using System.IO;
 using GISTech.GISTerrainLoader;
 
 using UnityEngine;
-using UnityEngine.Tilemaps;
 
 namespace MapUtils
 {
@@ -124,10 +123,10 @@ namespace MapUtils
 
         public static Wgs84Info centerWithWgs84(List<Wgs84Info> coordinates)
         {
-            if (coordinates.Count < 4)
-            {
-                throw new ArgumentException("List of Wgs84Info coordinates must be need 4 at least");
-            }
+            // if (coordinates.Count < 4)
+            // {
+            //     throw new ArgumentException("List of Wgs84Info coordinates must be need 4 at least");
+            // }
 
             double sumLat = 0.0;
             double sumLon = 0.0;
@@ -175,6 +174,35 @@ namespace MapUtils
 
             Debug.Log("finish with pixel coordinate");
             return new Vector2(pXN, pYN);
+        }
+
+        public static Vector2 tileToMeterCoord(TileInfo tileCoord, Wgs84Info wgs84Coord, double tilePixelSize) // tile2Wgs84 함수 사용 필수
+        {
+            // Earth Radius
+            double earthR = 6371e3;
+
+            //Tile WGS84 Coordinate
+            //It will returns the coordinate of the upper left point.
+            double merX = tileCoord.lon / Math.Pow(2, tileCoord.zoom) * 360 - 180;
+            double merY = Math.Atan(Math.Sinh(Math.PI * (1 - 2 * tileCoord.lat / Math.Pow(2, tileCoord.zoom)))) * 180 / Math.PI;
+            //It will returns the coordinate of the bottom left point.
+            double merYB = Math.Atan(Math.Sinh(Math.PI * (1 - 2 * (tileCoord.lat + 1) / Math.Pow(2, tileCoord.zoom)))) * 180 / Math.PI;
+
+            // float pX = (float)((wgs84Coord.lon - merX) * Math.Pow(2, tileCoord.zoom) * tilePixelSize / 360);
+            // float pY = (float)((merY - wgs84Coord.lat) * Math.Pow(2, tileCoord.zoom) * tilePixelSize / 360);
+
+            //Radian
+            float lat1 = (float)((wgs84Coord.lat * Math.PI) / 180); // specific lat
+            float lat2 = (float)((merY * Math.PI) / 180); // merY lat
+            float lat3 = (float)((merYB * Math.PI) / 180); // merYB lat
+            float lonCos = (float)((merX - wgs84Coord.lon) * Math.PI / 180); // specific lon Radian
+            float lonCosSame = (float)((merX - merX) * Math.PI / 180); // merX lon cos Radian
+
+            float distX = (float)(Math.Acos(Math.Sin(lat1) * Math.Sin(lat1) + Math.Cos(lat1) * Math.Cos(lat1) * Math.Cos(lonCos)) * earthR);
+            float distY = (float)(Math.Acos(Math.Sin(lat1) * Math.Sin(lat2) + Math.Cos(lat1) * Math.Cos(lat2) * Math.Cos(lonCosSame)) * earthR);
+
+            Debug.Log("finish with pixel coordinate");
+            return new Vector2(distX, distY);
         }
 
         public static float tileDist(TileInfo tileCoord)

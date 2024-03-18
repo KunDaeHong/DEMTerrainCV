@@ -186,6 +186,7 @@ public class MeshCut
             rightSideObj.transform.position = victim_transform.position;
             rightSideObj.transform.rotation = victim_transform.rotation;
             rightSideObj.GetComponent<MeshFilter>().mesh = right_HalfMesh;
+            rightSideObj.GetComponent<MeshRenderer>().materials = mats;
             gameObjects.Add(rightSideObj);
         }
 

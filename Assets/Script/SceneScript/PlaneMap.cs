@@ -82,7 +82,6 @@ public class PlaneMap : MonoBehaviour
             {
                 //StartCoroutine(loadMap(demVOs));
                 StartCoroutine(loadMapHighQuality(demVOs));
-                //StartCoroutine(testVietnam());
             }
         }
     }
@@ -130,7 +129,7 @@ public class PlaneMap : MonoBehaviour
     void Test()
     {
         //TODO: Test code (sewer)
-        //StartCoroutine(makeSewer(new TileInfo(1620, 3514, 12), 2048));
+        StartCoroutine(makeSewer(new TileInfo(1620, 3514, 12), 2048));
     }
 
     // StartAsync 
@@ -194,17 +193,17 @@ public class PlaneMap : MonoBehaviour
             int zoomDiff = 3;
             mapTileCnt = 1 << zoomDiff;
 
-            yield return getGoogleMapSatellite15(tileList, mapTileCnt);
+            //yield return getGoogleMapSatellite15(tileList, mapTileCnt);
             yield return "";
 
             // plane을 지도 이미지로 변경
-            int mapSize = 256 * mapTileCnt;
-            mapMainTexture = CVUtils.resizeTexture2D(mapMainTexture, mapSize, mapSize);
-            Material planeMapMaterial = new Material(Shader.Find("Standard"));
-            planeMapMaterial.mainTexture = mapMainTexture;
-            Renderer planeRenderer = GetComponent<Renderer>();
-            planeRenderer.material = planeMapMaterial;
-            //StartCoroutine(makeDEMTerrain(mapDemVOs));
+            // int mapSize = 256 * mapTileCnt;
+            // mapMainTexture = CVUtils.resizeTexture2D(mapMainTexture, mapSize, mapSize);
+            // Material planeMapMaterial = new Material(Shader.Find("Standard"));
+            // planeMapMaterial.mainTexture = mapMainTexture;
+            // Renderer planeRenderer = GetComponent<Renderer>();
+            // planeRenderer.material = planeMapMaterial;
+            StartCoroutine(makeDEMTerrain(mapDemVOs));
         }
         finally
         {
@@ -222,8 +221,8 @@ public class PlaneMap : MonoBehaviour
         string api_url = $"{APIConst.google_session_api}?{query}";
         Dictionary<string, string> data = new Dictionary<string, string>()
         {
-            //{"mapType", "satellite"},
-            {"mapType", "roadmap"},
+            {"mapType", "satellite"},
+            //{"mapType", "roadmap"},
             {"language", "en-US"},
             {"region", "US"}
         };
@@ -362,8 +361,6 @@ public class PlaneMap : MonoBehaviour
             var terrainObj = GameObject.Find($"Terrains {i}");
             TileInfo mapTile = MapUtils.MapLoadUtils.getTileListFromDEM(mapDem.topL, mapDem.topR, mapDem.bottomL, mapDem.bottomR);
             int mapSize = 256 * mapTileCnt;
-            //TODO: Test code (sewer)
-            yield return makeSewer(mapTile, mapSize);
             Vector2 topLP = MapUtils.MapLoadUtils.tileToPixel(mapTile, mapDem.topL, mapSize);
             Vector2 bottomLP = MapUtils.MapLoadUtils.tileToPixel(mapTile, mapDem.bottomL, mapSize);
             Vector2 bottomRP = MapUtils.MapLoadUtils.tileToPixel(mapTile, mapDem.bottomR, mapSize);
@@ -372,17 +369,17 @@ public class PlaneMap : MonoBehaviour
             //Vector2 centerP = MapUtils.tileToPixel(mapTile, centerWgs84);
 
             //타일좌표상에서 유니티 좌표로 변환 후 오브젝트가 이동할 좌표 구하기
-            Vector3 mapPose = new Vector3(bottomLP.x / mapTileCnt, 0, bottomLP.y / mapTileCnt - (tileImgPRect.height / mapTileCnt));
-            // Terrain currentTerrain = terrainObj.transform.GetChild(0).gameObject.GetComponent<Terrain>(); //GIS TECH 라이브러리 사용 시
+            Vector3 mapPose = new Vector3(bottomLP.x, 0, bottomLP.y - tileImgPRect.height);
+            //Terrain currentTerrain = terrainObj.transform.GetChild(0).gameObject.GetComponent<Terrain>(); //GIS TECH 라이브러리 사용 시
             Terrain currentTerrain = terrainObj.GetComponent<Terrain>();
-            //terrainObj.transform.position = mapPose;
+            terrainObj.transform.position = mapPose;
 
             //받은 dem에 지도 material로 생성
             Texture2D newTerrainImg = cropTexture(mapMainTexture, tileImgPRect);
             Material newTerrainMaterial = new Material(Shader.Find("Standard"));
-            // newTerrainMaterial.mainTexture = newTerrainImg;
-            // currentTerrain.materialTemplate = newTerrainMaterial;
-            // currentTerrain.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            newTerrainMaterial.mainTexture = newTerrainImg;
+            currentTerrain.materialTemplate = newTerrainMaterial;
+            currentTerrain.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
 
             //currentTerrain.terrainData.size = new Vector3(50, (mapDem.elevationMinMax.y - mapDem.elevationMinMax.x) / 10, 50); //현재 받은 dem의 위치 정보가 이상하여 정상 데이터로 받으면 삭제(보여주기 용)
 
@@ -409,7 +406,8 @@ public class PlaneMap : MonoBehaviour
 
     IEnumerator makeSewer(TileInfo currentTile, int tileSize)
     {
-        FacilityUtils.SewerUtils.Add(Const.facList, currentTile, tileSize);
+        List<GameObject> pipes = FacilityUtils.SewerUtils.Add(Const.facList, currentTile, tileSize);
+        FacilityUtils.SewerUtils.setAlign(pipes, Const.facList, currentTile, tileSize);
         yield return "";
     }
     // Sprite를 사각형의 틀에 맞게 크롭하는 함수
