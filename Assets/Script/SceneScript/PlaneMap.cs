@@ -128,8 +128,27 @@ public class PlaneMap : MonoBehaviour
     [ContextMenu("Test")]
     void Test()
     {
+        List<FacilityVO.FacilityInfoVO> buildings = new List<FacilityVO.FacilityInfoVO>();
+        List<FacilityVO.FacilityInfoVO> pipes = new List<FacilityVO.FacilityInfoVO>();
+
+        foreach (var fac in Const.facList)
+        {
+            switch (fac.facType)
+            {
+                case FacilityVO.FacilityEnum.Building:
+                    buildings.Add(fac);
+                    break;
+                case FacilityVO.FacilityEnum.StraightSewer:
+                    pipes.Add(fac);
+                    break;
+                default:
+                    break;
+            }
+
+        }
         //TODO: Test code (sewer)
-        StartCoroutine(makeSewer(new TileInfo(1620, 3514, 12), 2048));
+        StartCoroutine(makeSewer(new TileInfo(1620, 3514, 12), 2048, pipes));
+        StartCoroutine(makeBuildings(new TileInfo(1620, 3514, 12), 2048, buildings));
     }
 
     // StartAsync 
@@ -404,12 +423,19 @@ public class PlaneMap : MonoBehaviour
     }
 
 
-    IEnumerator makeSewer(TileInfo currentTile, int tileSize)
+    IEnumerator makeSewer(TileInfo currentTile, int tileSize, List<FacilityVO.FacilityInfoVO> facList)
     {
-        List<GameObject> pipes = FacilityUtils.SewerUtils.Add(Const.facList, currentTile, tileSize);
-        FacilityUtils.SewerUtils.setAlign(pipes, Const.facList, currentTile, tileSize);
+        List<GameObject> pipes = FacilityUtils.SewerUtils.Add(facList, currentTile, tileSize);
         yield return "";
     }
+
+    IEnumerator makeBuildings(TileInfo currentTile, int tileSize, List<FacilityVO.FacilityInfoVO> facList)
+    {
+        FacilityUtils.BuildingUtils.Add(facList, currentTile, tileSize);
+        yield return "";
+    }
+
+
     // Sprite를 사각형의 틀에 맞게 크롭하는 함수
     Texture2D cropTexture(Texture2D texture, Rect rect)
     {

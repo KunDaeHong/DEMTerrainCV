@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+
 using UnityEditor;
 using UnityEngine;
 
@@ -14,7 +15,7 @@ namespace FacilityUtils
         public static void setAlign(List<GameObject> pipeObjs, List<FacilityVO.FacilityInfoVO> pipes, TileInfo mapTile, int mapSize)
         {
             int index = 0;
-            //모든 파이프 오브젝트의 pivot은 중심점임.
+
             foreach (var pipe in pipeObjs)
             {
                 Wgs84Info objCenterCoord = MapUtils.MapLoadUtils.centerWithWgs84(pipes[index].coords);
@@ -31,7 +32,8 @@ namespace FacilityUtils
             List<GameObject> pipeObjs = new List<GameObject>();
             int index = 1;
             float previousDeg = 0;
-            SewerPoint previousStartP = SewerPoint.topLeft;
+            SewerPoint previousStartP = SewerPoint.topRight;
+            SewerPoint downCutPoint = SewerPoint.bottomRight;
 
             GameObject obj = (GameObject)AssetDatabase.LoadAssetAtPath(sewerPrefabPath, typeof(GameObject));
             Material stdMtl = (Material)AssetDatabase.LoadAssetAtPath(sewerStandardMtlPath, typeof(Material));
@@ -46,54 +48,66 @@ namespace FacilityUtils
                 var pipe = pipes[i];
                 GameObject nPipe = GameObject.Instantiate(obj);
                 nPipe.name = "Sewer " + index.ToString();
-                SewerPoint downCutPoint = SewerPoint.bottomRight;
+                float pipeDiameter = 5f;
+
+                Vector2 startP = MapUtils.MapLoadUtils.tileToPixel(currentTileLoc, pipe.coords.First(), tilePixelSize);
+                Vector2 endP = MapUtils.MapLoadUtils.tileToPixel(currentTileLoc, pipe.coords.Last(), tilePixelSize);
+                Rect currentPipeRect = new Rect(startP.x, startP.y, startP.x - endP.x, startP.y - endP.y);
+                float pipeLength = Math.Abs(currentPipeRect.height) < Math.Abs(currentPipeRect.width) ? Math.Abs(currentPipeRect.width / 2) : Math.Abs(currentPipeRect.height / 2);
+                var currentDeg = (float)Math.Abs(Math.Atan2((double)(endP.y - startP.y), (double)(endP.x - startP.x)) * 180 / Math.PI);
+                float nPipeDeg = 90 - currentDeg;
+
+                Wgs84Info objCenterCoord = MapUtils.MapLoadUtils.centerWithWgs84(pipe.coords);
+                Vector2 movePos = MapUtils.MapLoadUtils.tileToPixel(currentTileLoc, objCenterCoord, tilePixelSize);
+                Vector3 moveVector = new Vector3(movePos.x, 0, tilePixelSize - movePos.y);
+
+                if (Math.Abs(currentPipeRect.width) > Math.Abs(currentPipeRect.height))
+                {
+                    pipeLength += pipeDiameter / 2;
+                }
+
+                nPipe.transform.localScale = new Vector3(pipeDiameter, pipeLength, pipeDiameter);
 
                 if (previousStartP == SewerPoint.topLeft)
                 {
                     downCutPoint = SewerPoint.bottomLeft;
+
                 }
-
-                //현재 파이프
-                Vector2 startP = MapUtils.MapLoadUtils.tileToPixel(currentTileLoc, pipe.coords.First(), tilePixelSize);
-                Vector2 endP = MapUtils.MapLoadUtils.tileToPixel(currentTileLoc, pipe.coords.Last(), tilePixelSize);
-                Rect currentPipeRect = new Rect(startP.x, startP.y, startP.x - endP.x, startP.y - endP.y);
-                float pipeLength = Math.Abs(currentPipeRect.width / 2);
-
-                if (pipeLength < Math.Abs(currentPipeRect.height))
-                {
-                    pipeLength = Math.Abs(currentPipeRect.height / 2);
-                }
-
-                var currentDeg = (float)(Math.Atan2((double)(endP.y - startP.y), (double)(endP.x - startP.x)) * 180 / Math.PI - 90);
-                nPipe.transform.localScale = new Vector3(10, pipeLength, 10);
 
                 if (i > 0)
                 {
-                    cutSewerObj(downCutPoint, Math.Abs(previousDeg - 90), pipeLength, stdMtl, nPipe);
+                    cutSewerObj(downCutPoint, 90 + previousDeg, pipeLength, stdMtl, nPipe, pipeDiameter);
                 }
 
-                if (pipes.Count - 1 <= i)
+                if (pipes.Count - 1 > i)
                 {
-                    pipeObjs.Add(nPipe);
-                    break;
+                    var nextPipe = pipes[i + 1];
+                    Vector2 nextStartP = MapUtils.MapLoadUtils.tileToPixel(currentTileLoc, nextPipe.coords.First(), tilePixelSize);
+                    Vector2 nextEndP = MapUtils.MapLoadUtils.tileToPixel(currentTileLoc, nextPipe.coords.Last(), tilePixelSize);
+                    previousDeg = (float)(Math.Atan2((double)(nextStartP.y - nextEndP.y), (double)(nextEndP.x - nextStartP.x)) * 180 / Math.PI - 90);
+                    previousStartP = SewerPoint.topLeft;
+
+                    if (nextStartP.x < nextEndP.x || nextStartP.y > nextEndP.y)
+                    {
+                        previousStartP = SewerPoint.topRight;
+                        nPipeDeg = -1 * nPipeDeg;
+                    }
+
+                    cutSewerObj(previousStartP, 90 + previousDeg, pipeLength, stdMtl, nPipe, pipeDiameter);
                 }
 
-                //다음 파이프
-                var nextPipe = pipes[i + 1];
-                Vector2 nextStartP = MapUtils.MapLoadUtils.tileToPixel(currentTileLoc, nextPipe.coords.First(), tilePixelSize);
-                Vector2 nextEndP = MapUtils.MapLoadUtils.tileToPixel(currentTileLoc, nextPipe.coords.Last(), tilePixelSize);
-                previousDeg = (float)(Math.Atan2((double)(nextStartP.y - nextEndP.y), (double)(nextEndP.x - nextStartP.x)) * 180 / Math.PI - 90);
-                previousStartP = SewerPoint.topLeft;
-
-                if (startP.x < nextEndP.x)
+                if (Math.Abs(currentPipeRect.width) > Math.Abs(currentPipeRect.height))
                 {
-                    previousStartP = SewerPoint.topRight;
+                    moveVector.x += pipeDiameter / 4;
+                }
+                else
+                {
+                    moveVector.z -= pipeDiameter / 4;
                 }
 
-                cutSewerObj(previousStartP, Math.Abs(previousDeg - 90), pipeLength, stdMtl, nPipe);
                 Vector3 nPipeRot = nPipe.transform.rotation.eulerAngles;
-                Quaternion nPipeRotQ = Quaternion.Euler(new Vector3(nPipeRot.x, nPipeRot.y, currentDeg));
-                nPipe.transform.rotation = nPipeRotQ;
+                nPipe.transform.rotation = Quaternion.Euler(new Vector3(nPipeRot.x, nPipeRot.y, nPipeDeg));
+                nPipe.transform.position = moveVector;
                 pipeObjs.Add(nPipe);
             }
 
@@ -109,7 +123,7 @@ namespace FacilityUtils
         /// <param name="stdMtl">사용 머터리얼</param>
         /// <param name="pipe">파이프 오브젝트</param>
         /// <exception cref="Exception"></exception>
-        public static void cutSewerObj(SewerPoint startPoint, float degree, float pipeLength, Material stdMtl, GameObject pipe)
+        public static void cutSewerObj(SewerPoint startPoint, float degree, float pipeLength, Material stdMtl, GameObject pipe, float pipeDiameter)
         {
             if (degree > 180)
             {
@@ -124,28 +138,28 @@ namespace FacilityUtils
                     cutPoint.x = pipe.transform.position.x - (pipe.transform.localScale.x / 2);
                     cutPoint.y = pipe.transform.position.y;
                     cutPoint.z = pipe.transform.position.z + pipe.transform.localScale.y;
-                    dirVec = new Vector3(-(degree / 10) / pipeLength, 0, -0.9f);
+                    dirVec = new Vector3(-(degree / (10 * (10 / pipeDiameter))) / pipeLength, 0, -0.9f);
                     MeshCut.cutObject(pipe, cutPoint, dirVec, stdMtl, true, false);
                     break;
                 case SewerPoint.topRight:
                     cutPoint.x = pipe.transform.position.x + (pipe.transform.localScale.x / 2);
                     cutPoint.y = pipe.transform.position.y;
                     cutPoint.z = pipe.transform.position.z + pipe.transform.localScale.y;
-                    dirVec = new Vector3(degree / 10 / pipeLength, 0, -0.9f);
+                    dirVec = new Vector3(degree / (10 * (10 / pipeDiameter)) / pipeLength, 0, -0.9f);
                     MeshCut.cutObject(pipe, cutPoint, dirVec, stdMtl, false, true);
                     break;
                 case SewerPoint.bottomLeft:
                     cutPoint.x = pipe.transform.position.x - (pipe.transform.localScale.x / 2);
                     cutPoint.y = pipe.transform.position.y;
                     cutPoint.z = pipe.transform.position.z - pipe.transform.localScale.y;
-                    dirVec = new Vector3(degree / 10 / pipeLength, 0, -0.9f);
+                    dirVec = new Vector3(degree / (10 * (10 / pipeDiameter)) / pipeLength, 0, -0.9f);
                     MeshCut.cutObject(pipe, cutPoint, dirVec, stdMtl, true, false);
                     break;
                 case SewerPoint.bottomRight:
                     cutPoint.x = pipe.transform.position.x + (pipe.transform.localScale.x / 2);
                     cutPoint.y = pipe.transform.position.y;
                     cutPoint.z = pipe.transform.position.z - pipe.transform.localScale.y;
-                    dirVec = new Vector3(-(degree / 10) / pipeLength, 0, -0.9f);
+                    dirVec = new Vector3(-(degree / (10 * (10 / pipeDiameter))) / pipeLength, 0, -0.9f);
                     MeshCut.cutObject(pipe, cutPoint, dirVec, stdMtl, true, false);
                     break;
                 default:

@@ -176,7 +176,7 @@ namespace MapUtils
             return new Vector2(pXN, pYN);
         }
 
-        public static Vector2 tileToMeterCoord(TileInfo tileCoord, Wgs84Info wgs84Coord, double tilePixelSize) // tile2Wgs84 함수 사용 필수
+        public static Vector2 tileToMeterCoord(TileInfo tileCoord, Wgs84Info wgs84Coord) // tile2Wgs84 함수 사용 필수
         {
             // Earth Radius
             double earthR = 6371e3;
