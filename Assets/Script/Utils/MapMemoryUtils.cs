@@ -85,6 +85,55 @@ namespace MapUtils
             foreach (var tile in tileList)
             {
                 string api_url = $"{APIConst.google_map_api}/{tile.zoom}/{tile.lon}/{tile.lat}?{query}";
+                byte[] receivedByteArr = new byte[0];
+
+                Task<byte[]> task = NetworkVO.reqAPI<byte[]>(api_url, NetworkEnum.GET);
+                yield return new WaitUntil(() => task.IsCompleted);
+
+                Debug.Log($"{api_url}");
+
+                receivedByteArr = task.Result;
+                Texture2D bmp = new Texture2D(8, 8);
+                Vector2 pivot = new Vector2(0.5f, 0.5f);
+
+                bmp.LoadImage(receivedByteArr);
+                Rect tRect = new Rect(0, 0, bmp.width, bmp.height);
+
+                if (bmp.width > 256 && bmp.height > 256)
+                {
+                    bmp = CVUtils.resizeTexture2D(bmp, 256, 256);
+                }
+
+                textures.Add(bmp);
+            }
+
+            CVUtils.mergeTexture(textures, tileXWay);
+
+            // string directoryPath = @Application.streamingAssetsPath + "/tileImage/";
+            // if (Directory.Exists(directoryPath) == false)
+            // {
+            //     Directory.CreateDirectory(directoryPath);
+            // }
+
+            // var pngData = mapMainTexture.EncodeToJPG();
+            // var path = @Application.streamingAssetsPath + "/tileImage/" + "background" + ".jpg";
+            // File.WriteAllBytes(path, pngData);
+            yield return "";
+        }
+
+        private IEnumerator getMap4DSatelliteHQ(List<TileInfo> tileList, int tileXWay)
+        {
+
+            var tileQueryDict = new Dictionary<string, string> {
+                {"session", Const.Shared.Google_Session_key},
+                {"key", Const.Google_API}
+        };
+            string query = NetworkVO.queryParameterMaker(tileQueryDict);
+            List<Texture2D> textures = new List<Texture2D>();
+
+            foreach (var tile in tileList)
+            {
+                string api_url = $"{APIConst.google_map_api}/{tile.zoom}/{tile.lon}/{tile.lat}?{query}";
                 //string api_url = $"{APIConst.map4d_tms_map_api}/{tile.zoom}/{tile.lon}/{tile.lat}.png";
                 byte[] receivedByteArr = new byte[0];
 
