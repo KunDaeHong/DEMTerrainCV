@@ -379,9 +379,9 @@ namespace MapUtils
             tData.baseMapResolution = 2048;
 
             TileInfo mapTile = getTileListFromDEM(mapDemVOs.topL, mapDemVOs.topR, mapDemVOs.bottomL, mapDemVOs.bottomR);
-            Vector2 topLP = tileToPixel(mapTile, mapDemVOs.topL, 256);
-            Vector2 bottomLP = tileToPixel(mapTile, mapDemVOs.bottomL, 256);
-            Vector2 bottomRP = tileToPixel(mapTile, mapDemVOs.bottomR, 256);
+            Vector2 topLP = tileToPixel(mapTile, mapDemVOs.topL, 2048);
+            Vector2 bottomLP = tileToPixel(mapTile, mapDemVOs.bottomL, 2048);
+            Vector2 bottomRP = tileToPixel(mapTile, mapDemVOs.bottomR, 2048);
             tData.size = new Vector3(bottomRP.x - bottomLP.x, 0.3f, bottomLP.y - topLP.y);
             int index = 1;
             //yield return new WaitUntil(() => loadHeightMap.IsCompleted);
@@ -426,7 +426,6 @@ namespace MapUtils
 
             ///** 주석을 해제 시 자동으로 전체 주석처리 됩니다.
 
-            //상관 필터링 부드럽게 경계처리
             for (int cX = 0; cX < heightValues.GetLength(0); cX++)
             {
                 for (int cY = 0; cY < heightValues.GetLength(1); cY++)
@@ -435,15 +434,12 @@ namespace MapUtils
                 }
             }
 
-            //바이레터럴 필터로 필요없는 부분은 날리고 필요한 부분 미리 채움
             Task bilateralFilterTask = CVUtils.bilateralFilterCoroutine(heightValues);
             yield return new WaitUntil(() => bilateralFilterTask.IsCompleted);
 
-            //median필터로 필요한 부분은 채움
-            Task filterTask = CVUtils.testMedianFilteringCoroutine(heightValues, 5);
+            Task filterTask = CVUtils.testMedianFilteringCoroutine(heightValues, 3);
             yield return new WaitUntil(() => filterTask.IsCompleted);
 
-            //상관 필터링 부드럽게 경계처리
             for (int cX = 0; cX < heightValues.GetLength(0); cX++)
             {
                 for (int cY = 0; cY < heightValues.GetLength(1); cY++)

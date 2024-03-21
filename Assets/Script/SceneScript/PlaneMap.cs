@@ -212,16 +212,16 @@ public class PlaneMap : MonoBehaviour
             int zoomDiff = 3;
             mapTileCnt = 1 << zoomDiff;
 
-            //yield return getGoogleMapSatellite15(tileList, mapTileCnt);
+            yield return getGoogleMapSatellite15(tileList, mapTileCnt);
             yield return "";
 
             // plane을 지도 이미지로 변경
-            // int mapSize = 256 * mapTileCnt;
-            // mapMainTexture = CVUtils.resizeTexture2D(mapMainTexture, mapSize, mapSize);
-            // Material planeMapMaterial = new Material(Shader.Find("Standard"));
-            // planeMapMaterial.mainTexture = mapMainTexture;
-            // Renderer planeRenderer = GetComponent<Renderer>();
-            // planeRenderer.material = planeMapMaterial;
+            int mapSize = 256 * mapTileCnt;
+            mapMainTexture = CVUtils.resizeTexture2D(mapMainTexture, mapSize, mapSize);
+            Material planeMapMaterial = new Material(Shader.Find("Standard"));
+            planeMapMaterial.mainTexture = mapMainTexture;
+            Renderer planeRenderer = GetComponent<Renderer>();
+            planeRenderer.material = planeMapMaterial;
             StartCoroutine(makeDEMTerrain(mapDemVOs));
         }
         finally
@@ -388,7 +388,7 @@ public class PlaneMap : MonoBehaviour
             //Vector2 centerP = MapUtils.tileToPixel(mapTile, centerWgs84);
 
             //타일좌표상에서 유니티 좌표로 변환 후 오브젝트가 이동할 좌표 구하기
-            Vector3 mapPose = new Vector3(bottomLP.x, 0, bottomLP.y - tileImgPRect.height);
+            Vector3 mapPose = new Vector3(bottomLP.x, 0, mapSize - bottomLP.y);
             //Terrain currentTerrain = terrainObj.transform.GetChild(0).gameObject.GetComponent<Terrain>(); //GIS TECH 라이브러리 사용 시
             Terrain currentTerrain = terrainObj.GetComponent<Terrain>();
             terrainObj.transform.position = mapPose;

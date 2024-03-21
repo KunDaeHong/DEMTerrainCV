@@ -9,6 +9,7 @@ namespace FacilityVO
         public string facName;
         public string address;
         public float seaLevel;
+        public float azimuth;
         public List<Wgs84Info> coords;
         public FacilityEnum facType;
         public FacilityDrawEnum facDrawType;
@@ -17,6 +18,7 @@ namespace FacilityVO
             string facName,
             string address,
             float seaLevel,
+            float azimuth,
             List<Wgs84Info> coords,
             FacilityEnum facType,
             FacilityDrawEnum facDrawEnum)
@@ -24,6 +26,7 @@ namespace FacilityVO
             this.facName = facName;
             this.address = address;
             this.seaLevel = seaLevel;
+            this.azimuth = azimuth;
             this.coords = coords;
             this.facType = facType;
             this.facDrawType = facDrawEnum;

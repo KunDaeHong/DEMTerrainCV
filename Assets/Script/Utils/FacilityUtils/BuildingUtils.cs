@@ -17,6 +17,8 @@ namespace FacilityUtils
         {
             int index = 0;
             GameObject obj = (GameObject)AssetDatabase.LoadAssetAtPath(buildingPrefabPath, typeof(GameObject));
+            float tileDist = MapUtils.MapLoadUtils.tileDist(currentTileLoc);
+            float sampleObjMeter = 11.704977f;
 
             foreach (var buildings in objs)
             {
@@ -27,11 +29,17 @@ namespace FacilityUtils
 
                 GameObject building = GameObject.Instantiate(obj);
                 building.name = "Building " + index.ToString();
+                float realSize = (float)(sampleObjMeter * tilePixelSize / tileDist);
 
                 Wgs84Info objCenterCoord = MapUtils.MapLoadUtils.centerWithWgs84(buildings.coords);
                 Vector2 movePos = MapUtils.MapLoadUtils.tileToPixel(currentTileLoc, objCenterCoord, tilePixelSize);
                 Vector3 moveVector = new Vector3(movePos.x, 0, tilePixelSize - movePos.y);
+                Vector3 nBuildingRot = building.transform.rotation.eulerAngles;
+                Vector3 scale = new Vector3(realSize, realSize, realSize);
+
+                building.transform.rotation = Quaternion.Euler(new Vector3(nBuildingRot.x, buildings.azimuth, nBuildingRot.z));
                 building.transform.position = moveVector;
+                building.transform.localScale = scale;
                 index++;
             }
         }
