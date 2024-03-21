@@ -21,8 +21,6 @@ public class PlaneMap : MonoBehaviour
 
     private void Start()
     {
-        GameObject.Find("LoadingTitleBar").GetComponent<Image>().enabled = false;
-        GameObject.Find("LoadingTitle").GetComponent<Text>().enabled = false;
     }
 
     private async void Update()
@@ -97,7 +95,7 @@ public class PlaneMap : MonoBehaviour
         yield return "";
     }
 
-    async Task<Texture2D> getMapTexture2D(Wgs84Info topL, Wgs84Info topR, Wgs84Info bottomL, Wgs84Info bottomR)
+    public async Task<Texture2D> getMapTexture2D(Wgs84Info topL, Wgs84Info topR, Wgs84Info bottomL, Wgs84Info bottomR)
     {
         StartCoroutine(getMapHighQuality(topL, topR, bottomL, bottomR));
 
