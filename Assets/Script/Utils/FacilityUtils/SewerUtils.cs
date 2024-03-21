@@ -64,15 +64,15 @@ namespace FacilityUtils
                 pipeLength += pipeDiameter / 2;
                 nPipe.transform.localScale = new Vector3(pipeDiameter, pipeLength, pipeDiameter);
 
-                if (Math.Abs(currentPipeRect.width) > Math.Abs(currentPipeRect.height))
-                {
-                    nPipeDeg = -1 * nPipeDeg;
-                }
+                // if (Math.Abs(currentPipeRect.width) > Math.Abs(currentPipeRect.height))
+                // {
+                //     nPipeDeg = -1 * nPipeDeg;
+                // }
 
-                if (previousStartP == SewerPoint.topLeft && Math.Abs(currentPipeRect.width) < Math.Abs(currentPipeRect.height))
+                if (previousStartP == SewerPoint.topLeft && Math.Abs(currentPipeRect.width) > Math.Abs(currentPipeRect.height))
                 {
                     downCutPoint = SewerPoint.bottomLeft;
-
+                    nPipeDeg = 90 + currentDeg;
                 }
 
                 if (i > 0)
@@ -152,7 +152,7 @@ namespace FacilityUtils
                     cutPoint.y = pipe.transform.position.y;
                     cutPoint.z = pipe.transform.position.z - pipe.transform.localScale.y;
                     dirVec = new Vector3(degree / (10 * (10 / pipeDiameter)) / pipeLength, 0, -0.9f);
-                    MeshCut.cutObject(pipe, cutPoint, dirVec, stdMtl, false, true);
+                    MeshCut.cutObject(pipe, cutPoint, dirVec, stdMtl, true, false);
                     break;
                 case SewerPoint.bottomRight:
                     cutPoint.x = pipe.transform.position.x + (pipe.transform.localScale.x / 2);

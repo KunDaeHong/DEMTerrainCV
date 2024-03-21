@@ -380,4 +380,54 @@ public class CVUtils
         return hightValue2Texture2D(heightMap);
     }
 
+    // Sprite를 사각형의 틀에 맞게 크롭하는 함수
+    public static Texture2D cropTexture(Texture2D texture, Rect rect)
+    {
+        Color[] pixels = texture.GetPixels((int)rect.x, (int)rect.y, (int)rect.width, (int)rect.height);
+        Debug.Log($"cropSprite pixels x: {(int)rect.x} y: {(int)rect.y} width: {(int)rect.width} height: {(int)rect.height}");
+
+        Texture2D croppedTexture = new Texture2D((int)rect.width, (int)rect.height);
+        croppedTexture.SetPixels(pixels);
+        croppedTexture.Apply();
+
+        //Sprite croppedSprite = Sprite.Create(croppedTexture, new Rect(0, 0, (int)rect.width, (int)rect.height), new Vector2(0.5f, 0.5f));
+
+        return croppedTexture;
+    }
+
+    //Makes one sprite from multiple sprite.
+    public static Texture2D mergeTexture(List<Texture2D> textures, int tileXWay)
+    {
+        int xSize = tileXWay * 256;
+        Texture2D mapTexture = new Texture2D(xSize, xSize);
+        Vector2 pivot = new Vector2(0.5f, 0.5f);
+        Vector2 textureSize = new Vector2(0, tileXWay * 256);
+
+        mapTexture.Apply(true, false);
+
+        foreach (var texture in textures)
+        {
+            Texture2D mapSpriteTexture = texture;
+            mapSpriteTexture.Apply(true, false);
+
+            mapTexture.SetPixels(
+                (int)textureSize.x,
+                (int)textureSize.y - 256,
+                256,
+                256,
+                mapSpriteTexture.GetPixels());
+
+            textureSize.x += 256;
+
+            if (textureSize.x >= xSize)
+            {
+                textureSize.x = 0;
+                textureSize.y -= 256;
+            }
+        }
+
+        // Rect tRect = new Rect(0, 0, mapTexture.width, mapTexture.height);
+        return mapTexture;
+    }
+
 }
