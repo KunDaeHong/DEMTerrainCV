@@ -82,8 +82,16 @@ public class PlaneMap : MonoBehaviour
             };
 
         TileInfo mapTile = MapUtils.MapLoadUtils.getTileListFromDEM(wgs84Coords[0], wgs84Coords[1], wgs84Coords[2], wgs84Coords[3]);
-        List<TileInfo> tileList = MapUtils.MapLoadUtils.getTilesInTile(mapTile, mapTile.zoom + 4);
-        mapTileCnt = 1 << (mapTile.zoom + 4 - mapTile.zoom);
+
+        List<TileInfo> tileList = new List<TileInfo>() { mapTile };
+        mapTileCnt = 1;
+
+        if (mapTile.zoom < 19)
+        {
+            tileList = MapUtils.MapLoadUtils.getTilesInTile(mapTile, mapTile.zoom + 3);
+            mapTileCnt = 1 << 3;
+        }
+
 
         yield return getGoogleMapSatellite15(tileList, mapTileCnt);
         yield return "";
