@@ -64,11 +64,6 @@ namespace FacilityUtils
                 pipeLength += pipeDiameter / 2;
                 nPipe.transform.localScale = new Vector3(pipeDiameter, pipeLength, pipeDiameter);
 
-                // if (Math.Abs(currentPipeRect.width) > Math.Abs(currentPipeRect.height))
-                // {
-                //     nPipeDeg = -1 * nPipeDeg;
-                // }
-
                 if (previousStartP == SewerPoint.topLeft && Math.Abs(currentPipeRect.width) > Math.Abs(currentPipeRect.height))
                 {
                     downCutPoint = SewerPoint.bottomLeft;
@@ -77,7 +72,7 @@ namespace FacilityUtils
 
                 if (i > 0)
                 {
-                    cutSewerObj(downCutPoint, Math.Abs(90 + previousDeg), pipeLength, stdMtl, nPipe, pipeDiameter);
+                    cutSewerObj(downCutPoint, Math.Abs(previousDeg), pipeLength, stdMtl, nPipe, pipeDiameter);
                 }
 
                 if (pipes.Count - 1 > i)
@@ -85,15 +80,17 @@ namespace FacilityUtils
                     var nextPipe = pipes[i + 1];
                     Vector2 nextStartP = MapUtils.MapLoadUtils.tileToPixel(currentTileLoc, nextPipe.coords.First(), tilePixelSize);
                     Vector2 nextEndP = MapUtils.MapLoadUtils.tileToPixel(currentTileLoc, nextPipe.coords.Last(), tilePixelSize);
-                    previousDeg = (float)(Math.Atan2((double)(nextStartP.y - nextEndP.y), (double)(nextEndP.x - nextStartP.x)) * 180 / Math.PI - 90);
+                    float nextPipeDeg = (float)Math.Abs(Math.Atan2((double)(nextStartP.y - nextEndP.y), (double)(nextEndP.x - nextStartP.x)) * 180 / Math.PI);
                     previousStartP = SewerPoint.topLeft;
+                    previousDeg = 90 + nextPipeDeg;
 
                     if (nextStartP.y > nextEndP.y && Math.Abs(currentPipeRect.width) > Math.Abs(currentPipeRect.height))
                     {
                         previousStartP = SewerPoint.topRight;
+                        previousDeg = nextPipeDeg;
                     }
 
-                    cutSewerObj(previousStartP, Math.Abs(90 + previousDeg), pipeLength, stdMtl, nPipe, pipeDiameter);
+                    cutSewerObj(previousStartP, Math.Abs(previousDeg), pipeLength, stdMtl, nPipe, pipeDiameter);
                 }
 
                 if (Math.Abs(currentPipeRect.width) > Math.Abs(currentPipeRect.height))
