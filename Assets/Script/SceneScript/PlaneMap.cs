@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 using System.IO;
 
 using UnityEngine;
-using UnityEngine.UI;
 
 using Newtonsoft.Json;
+using Unity.VisualScripting;
 
 public class PlaneMap : MonoBehaviour
 {
@@ -27,20 +27,58 @@ public class PlaneMap : MonoBehaviour
     {
         if (Input.GetKey(KeyCode.Y))
         {
-            if (!isLoadingMap)
-            {
-                //왼쪽 위, 오른쪽 위, 왼쪽 하단, 오른쪽 하단
-                Texture2D map = await getMapTexture2D(
-                    new Wgs84Info(11.945088338330308, 108.41956416737673, 0),
-                    new Wgs84Info(11.945088338330308, 108.42674728647341, 0),
-                    new Wgs84Info(11.938431073223398, 108.41956416737673, 0),
-                    new Wgs84Info(11.938431073223398, 108.42674728647341, 0)
-                );
+            //왼쪽 위, 오른쪽 위, 왼쪽 하단, 오른쪽 하단
+            await addMap(
+                new Wgs84Info(16.06695135, 108.1985179, 0),
+                new Wgs84Info(16.06695135, 108.2073754, 0),
+                new Wgs84Info(16.06451295, 108.1985179, 0),
+                new Wgs84Info(16.06451295, 108.2073754, 0));
 
-                //타일 한변의 길이 (m단위)
-                //float tileDist = MapUtils.MapLoadUtils.tileDist(new TileInfo(0, 0, 0)); //lat lon zoom 순
-                //Wgs84거리 측정 (m단위)
-                //float wgs84Dist = MapUtils.MapLoadUtils.wgs84Dist(new Wgs84Info(0, 0, 0), new Wgs84Info(0, 0, 0)); //Wgs84Info lat lon zoom 순
+            TileInfo mapTile = MapUtils.MapLoadUtils.getTileListFromDEM(
+                new Wgs84Info(16.06695135, 108.1985179, 0),
+                new Wgs84Info(16.06695135, 108.2073754, 0),
+                new Wgs84Info(16.06451295, 108.1985179, 0),
+                new Wgs84Info(16.06451295, 108.2073754, 0));
+
+            //타일 한변의 길이 (m단위)
+            //float tileDist = MapUtils.MapLoadUtils.tileDist(new TileInfo(0, 0, 0)); //lat lon zoom 순
+            //Wgs84거리 측정 (m단위)
+            //float wgs84Dist = MapUtils.MapLoadUtils.wgs84Dist(new Wgs84Info(0, 0, 0), new Wgs84Info(0, 0, 0)); //Wgs84Info lat lon zoom 순
+        }
+    }
+
+    public async Task addMap(Wgs84Info topL, Wgs84Info topR, Wgs84Info bottomL, Wgs84Info bottomR)
+    {
+        if (!isLoadingMap)
+        {
+            try
+            {
+                isLoadingMap = true;
+                GameObject parentsMapObj = new GameObject();
+                GameObject planeMap = GameObject.CreatePrimitive(PrimitiveType.Quad);
+                planeMap.transform.SetParent(parentsMapObj.transform);
+                parentsMapObj.name = "PlaneMapParents";
+                planeMap.name = "PlaneMapChild";
+
+                Texture2D map = await getMapTexture2D(topL, topR, bottomL, bottomR);
+                TileInfo mapTile = MapUtils.MapLoadUtils.getTileListFromDEM(topL, topR, bottomL, bottomR);
+                float tileDist = MapUtils.MapLoadUtils.tileDist(mapTile);
+                int mapSize = 256 * mapTileCnt;
+                Vector2 mapPosition = MapUtils.MapLoadUtils.tileToMeterCoord(mapTile, new Wgs84Info(16.06451295, 108.1985179, 0));
+
+                planeMap.transform.localScale = new Vector3(tileDist, tileDist, tileDist);
+                planeMap.transform.localRotation = Quaternion.Euler(new Vector3(90, 0, 0));
+                planeMap.transform.position = new Vector3(tileDist / 2 - mapPosition.x, 0, tileDist / 2 - (tileDist - mapPosition.y));
+                Debug.Log($"current Tile {mapTile.lat} {mapTile.lon} {mapTile.zoom} {tileDist}m");
+
+                Material planeMapMaterial = new Material(Shader.Find("Standard"));
+                planeMapMaterial.mainTexture = CVUtils.resizeTexture2D(map, mapSize, mapSize);
+                Renderer planeRenderer = planeMap.GetComponent<Renderer>();
+                planeRenderer.material = planeMapMaterial;
+            }
+            finally
+            {
+                isLoadingMap = false;
             }
         }
     }
@@ -80,14 +118,19 @@ public class PlaneMap : MonoBehaviour
             };
 
         TileInfo mapTile = MapUtils.MapLoadUtils.getTileListFromDEM(wgs84Coords[0], wgs84Coords[1], wgs84Coords[2], wgs84Coords[3]);
-
         List<TileInfo> tileList = new List<TileInfo>() { mapTile };
         mapTileCnt = 1;
+        int zoomUpgrade = 3;
 
         if (mapTile.zoom < 19)
         {
-            tileList = MapUtils.MapLoadUtils.getTilesInTile(mapTile, mapTile.zoom + 3);
-            mapTileCnt = 1 << 3;
+            while (mapTile.zoom + zoomUpgrade > 19)
+            {
+                zoomUpgrade--;
+            }
+
+            tileList = MapUtils.MapLoadUtils.getTilesInTile(mapTile, mapTile.zoom + zoomUpgrade);
+            mapTileCnt = 1 << zoomUpgrade;
         }
 
 
@@ -113,44 +156,20 @@ public class PlaneMap : MonoBehaviour
     //고화질 맵을 Texture2D로 반환
     IEnumerator getMapHighQuality(Wgs84Info topL, Wgs84Info topR, Wgs84Info bottomL, Wgs84Info bottomR)
     {
-        isLoadingMap = true;
-        try
-        {
-            //Vietnam VDC
-            MapDemVO roadDem = new MapDemVO(
-                demPath: "",
-                elevationMinMax: new Vector2(0f, 0f),
-                terrainDimension: new Vector2(0f, 0f),
-                topL: topL,
-                topR: topR,
-                bottomL: bottomL,
-                bottomR: bottomR
-            );
+        //Vietnam VDC
+        MapDemVO roadDem = new MapDemVO(
+            demPath: "",
+            elevationMinMax: new Vector2(0f, 0f),
+            terrainDimension: new Vector2(0f, 0f),
+            topL: topL,
+            topR: topR,
+            bottomL: bottomL,
+            bottomR: bottomR
+        );
 
-            yield return loadMapHighQuality(new MapDemVO[] { roadDem });
-
-            // string directoryPath = @Application.streamingAssetsPath + "/tileImage/";
-            // if (Directory.Exists(directoryPath) == false)
-            // {
-            //     Directory.CreateDirectory(directoryPath);
-            // }
-
-            // var pngData = mapMainTexture.EncodeToJPG();
-            // var path = @Application.streamingAssetsPath + "/tileImage/" + "background" + ".jpg";
-            // File.WriteAllBytes(path, pngData);
-
-            int mapSize = 256 * mapTileCnt;
-            mapResizeTexture = CVUtils.resizeTexture2D(mapMainTexture, mapSize, mapSize);
-
-            Material planeMapMaterial = new Material(Shader.Find("Standard"));
-            planeMapMaterial.mainTexture = mapResizeTexture;
-            Renderer planeRenderer = GetComponent<Renderer>();
-            planeRenderer.material = planeMapMaterial;
-        }
-        finally
-        {
-            isLoadingMap = false;
-        }
+        yield return loadMapHighQuality(new MapDemVO[] { roadDem });
+        int mapSize = 256 * mapTileCnt;
+        mapResizeTexture = CVUtils.resizeTexture2D(mapMainTexture, mapSize, mapSize);
 
         yield return mapResizeTexture;
     }
