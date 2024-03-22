@@ -1,11 +1,15 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Text;
+using System.Globalization;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 
+using UnityEngine.Networking;
+using System.Collections;
 using UnityEngine;
+
 
 public class NetworkVO
 {
@@ -28,7 +32,7 @@ public class NetworkVO
     {
         try
         {
-            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
+            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(string.Format(CultureInfo.InvariantCulture, url));
             Encoding encoding = Encoding.UTF8;
 
             switch (reqType)
@@ -97,10 +101,64 @@ public class NetworkVO
             throw e;
         }
     }
+
+    public static IEnumerator reqAPIUnity(string url, NetworkEnum reqType, string data = null)
+    {
+        UnityWebRequest request;
+
+        switch (reqType)
+        {
+            case NetworkEnum.POST:
+                request = UnityWebRequest.Post(string.Format(CultureInfo.InvariantCulture, url), "");
+
+                if (data != null)
+                {
+                    request = UnityWebRequest.Post(string.Format(CultureInfo.InvariantCulture, url), data);
+                }
+
+                break;
+            case NetworkEnum.GET:
+                request = UnityWebRequest.Get(string.Format(CultureInfo.InvariantCulture, url));
+                break;
+            default:
+                request = UnityWebRequest.Get(string.Format(CultureInfo.InvariantCulture, url));
+                break;
+        }
+
+        request.downloadHandler = new DownloadHandlerBuffer();
+        yield return request.SendWebRequest();
+
+        if (request.responseCode != (int)RESPONSE_CODE.OK)
+        {
+            string resultText = request.downloadHandler.text;
+            throw new Exception($"Network Status Code {request.responseCode}, Message: {resultText}");
+        }
+
+        if (request.GetResponseHeaders()["Content-Type"] != "Application/json" &&
+            request.GetResponseHeaders()["Content-Type"] != "application/json; charset=UTF-8" &&
+            request.GetResponseHeaders()["Content-Type"] != "application/json"
+            )
+        {
+            yield return request.downloadHandler.data;
+        }
+        else
+        {
+            yield return request.downloadHandler.text;
+        }
+
+    }
 }
 
 public enum NetworkEnum
 {
     POST,
     GET
+}
+
+public enum RESPONSE_CODE
+{
+    OK = 200,
+    Unauthorized = 401,
+    Forbidden = 403,
+    NotFound = 404
 }

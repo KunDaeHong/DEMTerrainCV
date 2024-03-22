@@ -243,12 +243,14 @@ public class PlaneMap : MonoBehaviour
             string api_url = $"{APIConst.map4d_tms_map_api}/{tile.zoom}/{tile.lon}/{tile.lat}.png";
             byte[] receivedByteArr = new byte[0];
 
-            Task<byte[]> task = NetworkVO.reqAPI<byte[]>(api_url, NetworkEnum.GET);
-            yield return new WaitUntil(() => task.IsCompleted);
-
+            // Task<byte[]> task = NetworkVO.reqAPI<byte[]>(api_url, NetworkEnum.GET);
+            // yield return new WaitUntil(() => task.IsCompleted);
+            IEnumerator enumerator = NetworkVO.reqAPIUnity(api_url, NetworkEnum.GET);
+            yield return enumerator;
             Debug.Log($"{api_url}");
 
-            receivedByteArr = task.Result;
+            //receivedByteArr = task.Result;
+            receivedByteArr = (byte[])enumerator.Current;
             Texture2D bmp = new Texture2D(8, 8);
             Vector2 pivot = new Vector2(0.5f, 0.5f);
 
